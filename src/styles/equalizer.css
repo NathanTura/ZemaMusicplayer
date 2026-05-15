@@ -2,12 +2,12 @@
    Equalizer View Overhaul
    ============================ */
 .eq-view {
-  max-width: 900px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 32px;
   padding: 20px;
+
+
 }
 
 /* Header */
