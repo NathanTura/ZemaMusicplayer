@@ -16,8 +16,11 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => (
        </div>
 
        <div className="track-info-large">
-         <div className="track-title-large">No track selected</div>
-         <div className="track-artist-large">Unknown Artist</div>
+         <div style={{ flex: 1 }}>
+           <div className="track-title-large">No track selected</div>
+           <div className="track-artist-large">Unknown Artist</div>
+         </div>
+         <button className="icon-btn like-btn"><span className="material-symbols-rounded" style={{ fontSize: '2rem' }}>favorite</span></button>
        </div>
 
        <div className="now-playing-progress">

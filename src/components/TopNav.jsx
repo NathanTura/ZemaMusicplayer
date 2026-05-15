@@ -11,7 +11,7 @@ const TopNav = ({ currentView, setCurrentView }) => (
         <nav className="nav-links">
           <a href="#" className={currentView === 'Home' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('Home'); }}>Home</a>
           <a href="#" className={currentView === 'Library' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('Library'); }}>Library</a>
-          <a href="#">Equalizer</a>
+          <a href="#" className={currentView === 'Equalizer' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('Equalizer'); }}>Equalizer</a>
         </nav>
       </div>
       

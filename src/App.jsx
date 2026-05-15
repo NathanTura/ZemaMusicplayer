@@ -4,6 +4,7 @@ import TopNav from './components/TopNav';
 import MobileTopNav from './components/MobileTopNav';
 import HomeView from './views/HomeView';
 import LibraryView from './views/LibraryView';
+import EqualizerView from './views/EqualizerView';
 import Sidebar from './components/Sidebar';
 import DesktopPlayer from './components/DesktopPlayer';
 import MobileMiniPlayer from './components/MobileMiniPlayer';
@@ -92,13 +93,15 @@ function App() {
             <main className="content">
               {currentView === 'Home' ? (
                 <HomeView />
-              ) : (
+              ) : currentView === 'Library' ? (
                 <LibraryView 
                   localFiles={localFiles} 
                   onBrowseClick={handleFolderLoadClick}
                   fileInputRef={fileInputRef}
                   onFileChange={handleFileChange}
                 />
+              ) : (
+                <EqualizerView />
               )}
             </main>
 

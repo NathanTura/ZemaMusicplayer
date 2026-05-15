@@ -35,6 +35,9 @@
   .track-text { flex: 1; overflow: hidden; white-space: nowrap; display: flex; flex-direction: column; justify-content: center; }
   .track-title { font-size: 0.85rem; color: #ffffff; font-weight: 500; margin-bottom: 2px; }
   .track-artist { font-size: 0.7rem; color: #b3b3b3; }
+  .like-btn { margin-left: 12px; transition: color 0.2s, transform 0.2s; }
+  .like-btn:hover { color: var(--color-primary); transform: scale(1.1); }
+  .like-btn.active { color: var(--color-primary); }
 
   .player-options { display: flex; align-items: center; justify-content: flex-end;}
   .volume-container { position: relative; display: flex; align-items: center; justify-content: center; }
@@ -85,7 +88,7 @@
   .now-playing-main { flex: 1; padding: 24px; display: flex; flex-direction: column; justify-content: center; }
   .big-artwork-container { flex: 1; display: flex; align-items: center; justify-content: center; margin-bottom: 32px;}
   .huge-artwork { width: 100%; aspect-ratio: 1; max-width: 300px; border-radius: 8px; }
-  .track-info-large { margin-bottom: 24px; }
+  .track-info-large { margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
   .track-title-large { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
   .track-artist-large { font-size: 1rem; color: var(--color-text-muted); }
   .now-playing-progress { margin-bottom: 32px; }

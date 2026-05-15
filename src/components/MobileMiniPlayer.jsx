@@ -15,6 +15,9 @@ const MobileMiniPlayer = ({ onToggle }) => (
         <span className="mini-title">No track selected</span>
         <span className="mini-artist">Unknown Artist</span>
       </div>
+      <button className="icon-btn like-btn" onClick={(e) => e.stopPropagation()}>
+        <span className="material-symbols-rounded">favorite</span>
+      </button>
     </div>
   </div>
 );

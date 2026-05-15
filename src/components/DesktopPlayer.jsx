@@ -12,6 +12,7 @@ const DesktopPlayer = () => (
             <div className="track-title">No track selected</div>
             <div className="track-artist">Unknown Artist</div>
           </div>
+          <button className="icon-btn like-btn"><span className="material-symbols-rounded">favorite</span></button>
         </div>
       </div>
       
