@@ -23,15 +23,19 @@
 .content { 
   flex: 1; 
   overflow-y: auto; 
+  overflow-x: hidden;
   padding: 32px; 
   max-width: 1200px; 
   margin: 0 auto; 
+  position: relative;
+  width: 100%;
 }
 
 @media (max-width: 767px) {
   .content { 
     padding: 16px; 
     padding-bottom: 140px; 
+    width: 100vw;
   }
 }
 
