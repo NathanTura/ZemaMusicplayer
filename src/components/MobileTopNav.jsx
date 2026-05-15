@@ -1,8 +1,8 @@
 import React from 'react';
 
-const MobileTopNav = () => (
+const MobileTopNav = ({ setCurrentView }) => (
   <header className="mobile-top-nav mobile-only">
-    <div className="nav-left" style={{ display: 'flex', alignItems: 'center' }}>
+    <div className="nav-left" onClick={() => setCurrentView('Home')} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
       <img src="src\assets\Logo_copy.png" alt="Zema Logo" className="app-logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
       <span style={{ fontWeight: 700, marginLeft: '8px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', height: '100%' }}>Zema</span>
     </div>

@@ -87,7 +87,7 @@ function App() {
       {!loading && (
         <div id="app">
           <TopNav currentView={currentView} setCurrentView={setCurrentView} />
-          <MobileTopNav />
+          <MobileTopNav setCurrentView={setCurrentView} />
 
           <div className="main-container">
             <main className="content">

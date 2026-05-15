@@ -4,7 +4,7 @@ const TopNav = ({ currentView, setCurrentView }) => (
   <header className="top-nav desktop-only">
     <div className="nav-container-centered">
       <div className="nav-left">
-        <div className="logo-wrapper">
+        <div className="logo-wrapper" onClick={() => setCurrentView('Home')} style={{ cursor: 'pointer' }}>
           <img src="src\assets\Logo_copy.png" alt="Zema Logo" className="app-logo" />
           <span className="logo-text">Zema</span>
         </div>

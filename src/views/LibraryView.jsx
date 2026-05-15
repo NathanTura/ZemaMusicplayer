@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import FolderBanner from '../components/FolderBanner';
 
 const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange }) => {
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [activeTab, setActiveTab] = useState('History');
 
   return (
     <div className="library-view">
@@ -14,7 +14,7 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange }) 
       />
 
       <div className="library-subnav">
-        {['Overview', 'Likes', 'Playlists', 'Albums'].map(tab => (
+        {['History', 'Likes', 'Playlists', 'Albums'].map(tab => (
           <button 
             key={tab}
             className={`subnav-btn ${activeTab === tab ? 'active' : ''}`}
@@ -35,7 +35,8 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange }) 
               <div className="card-art empty-card-art">
                 <span className="material-symbols-rounded">
                   {activeTab === 'Likes' ? 'favorite' : 
-                   activeTab === 'Albums' ? 'album' : 'queue_music'}
+                   activeTab === 'Albums' ? 'album' : 
+                   activeTab === 'History' ? 'history' : 'queue_music'}
                 </span>
               </div>
               <div className="card-title">Empty {activeTab}</div>
