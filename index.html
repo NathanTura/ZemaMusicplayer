@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zema Music Player</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <h1>Zema</h1>
+        <button class="icon-btn"><span class="material-symbols-rounded">search</span></button>
+      </header>
+
+      <!-- Main Content Area -->
+      <main class="content">
+        <!-- Tabs -->
+        <nav class="tabs">
+          <button class="tab active" data-target="songs">Songs</button>
+          <button class="tab" data-target="albums">Albums</button>
+          <button class="tab" data-target="artists">Artists</button>
+          <button class="tab" data-target="folders">Folders</button>
+        </nav>
+
+        <!-- Tab Contents -->
+        <section id="songs" class="tab-content active">
+          <div class="empty-state">
+            <span class="material-symbols-rounded empty-icon">library_music</span>
+            <p>No music found.</p>
+            <button class="btn-primary" id="load-folder-btn">Select Music Folder</button>
+            <input type="file" id="folder-input" webkitdirectory directory multiple style="display: none;" />
+          </div>
+        </section>
+
+        <section id="albums" class="tab-content">
+           <div class="empty-state"><p>Albums will appear here</p></div>
+        </section>
+
+        <section id="artists" class="tab-content">
+           <div class="empty-state"><p>Artists will appear here</p></div>
+        </section>
+
+        <section id="folders" class="tab-content">
+           <div class="empty-state"><p>Folders will appear here</p></div>
+        </section>
+      </main>
+
+      <!-- Mini Player (Hidden by default) -->
+      <div id="mini-player" class="mini-player">
+        <div class="mini-info">
+           <div class="mini-art"></div>
+           <div class="mini-text">
+             <span class="mini-title">Unknown Track</span>
+             <span class="mini-artist">Unknown Artist</span>
+           </div>
+        </div>
+        <div class="mini-controls">
+           <button class="icon-btn"><span class="material-symbols-rounded">play_arrow</span></button>
+           <button class="icon-btn"><span class="material-symbols-rounded">skip_next</span></button>
+        </div>
+      </div>
+
+      <!-- Bottom Navigation -->
+      <nav class="bottom-nav">
+        <button class="nav-item active"><span class="material-symbols-rounded">library_music</span><span>Library</span></button>
+        <button class="nav-item"><span class="material-symbols-rounded">equalizer</span><span>Equalizer</span></button>
+        <button class="nav-item"><span class="material-symbols-rounded">settings</span><span>Settings</span></button>
+      </nav>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
