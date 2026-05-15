@@ -6,6 +6,8 @@
 
 Zema is a simple, clean music player for your local files. It’s built to look good and feel smooth, with a vibe inspired by SoundCloud.
 
+**Note:** This is still a work in progress. I'm adding features and fixing bugs as I go.
+
 ## Features
 
 - **Play Local Music**: Just point it to your music folder and start listening.
