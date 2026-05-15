@@ -1,54 +1,42 @@
 # Zema Music Player
 
 <p align="center">
-  <img src="src/assets/Logo.png" alt="Zema Logo" width="200"/>
+  <img src="src/assets/Logo.png" alt="Zema Logo" width="180"/>
 </p>
 
-Zema is a premium, local-first music player designed with modern aesthetics and fluid performance. It provides a seamless experience for playing your local music library with a focus on smooth animations and a "SoundCloud-inspired" user interface.
+Zema is a simple, clean music player for your local files. It’s built to look good and feel smooth, with a vibe inspired by SoundCloud.
 
-## ✨ Features
+## Features
 
-- 📂 **Local Library**: Effortlessly browse and play music directly from your local folders.
-- 🎬 **Premium Transitions**: Smooth, sliding animations between views and library sections powered by Framer Motion.
-- 🎚️ **Equalizer**: Fine-tune your audio experience with a built-in equalizer.
-- 📱 **Fully Responsive**: Optimized for both high-end desktop setups and mobile devices.
-- 🌓 **Modern UI**: Dark-mode centric design with sleek glassmorphism and vibrant gradients.
-- 🚀 **Offline First**: No internet required, just you and your music.
+- **Play Local Music**: Just point it to your music folder and start listening.
+- **Smooth Slides**: Pages and tabs slide left/right when you move around.
+- **Equalizer**: Tweak the sound exactly how you like it.
+- **Mobile Ready**: Works great on your phone and your computer.
+- **Dark Mode**: Easy on the eyes with a sleek dark theme.
+- **Totally Offline**: No internet needed.
 
-## 🛠️ Tech Stack
+## Tech
 
-- **Frontend**: React 19
-- **Build Tool**: Vite
-- **Animations**: Framer Motion
-- **Styling**: Vanilla CSS (CSS Variables, Flexbox, Grid)
-- **Icons**: Material Symbols
+- **React 19** & **Vite**
+- **Framer Motion** for the sliding animations
+- **Vanilla CSS** for the layout
+- **Material Symbols** for icons
 
-## 🚀 Getting Started
+## How to run it
 
-### Prerequisites
-
-- Node.js (latest LTS recommended)
-- npm or yarn
-
-### Installation
-
-1. **Clone the repository**:
+1. **Clone it**:
    ```bash
    git clone https://github.com/NathanTura/ZemaMusicplayer.git
    ```
 
-2. **Install dependencies**:
+2. **Install everything**:
    ```bash
    npm install
    ```
 
-3. **Run the development server**:
+3. **Go live**:
    ```bash
    npm run dev
    ```
 
-4. Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-## 📄 License
-
-This project is for personal and demonstration purposes.
+That’s it. Open the link in your browser and you're good to go.
