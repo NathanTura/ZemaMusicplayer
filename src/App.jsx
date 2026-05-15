@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import LoadingScreen from './components/LoadingScreen';
 import TopNav from './components/TopNav';
 import MobileTopNav from './components/MobileTopNav';
-import FolderBanner from './components/FolderBanner';
-import MusicSections from './components/MusicSections';
+import HomeView from './views/HomeView';
+import LibraryView from './views/LibraryView';
 import Sidebar from './components/Sidebar';
 import DesktopPlayer from './components/DesktopPlayer';
 import MobileMiniPlayer from './components/MobileMiniPlayer';
@@ -12,6 +12,7 @@ import MobileNowPlaying from './components/MobileNowPlaying';
 
 function App() {
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState('Home');
   const [mobileNowPlayingOpen, setMobileNowPlayingOpen] = useState(false);
   const [localFiles, setLocalFiles] = useState([]);
   const [sidebarWidth, setSidebarWidth] = useState(300);
@@ -84,18 +85,21 @@ function App() {
       
       {!loading && (
         <div id="app">
-          <TopNav />
+          <TopNav currentView={currentView} setCurrentView={setCurrentView} />
           <MobileTopNav />
 
           <div className="main-container">
             <main className="content">
-              <FolderBanner 
-                localFiles={localFiles} 
-                onBrowseClick={handleFolderLoadClick}
-                fileInputRef={fileInputRef}
-                onFileChange={handleFileChange}
-              />
-              <MusicSections />
+              {currentView === 'Home' ? (
+                <HomeView />
+              ) : (
+                <LibraryView 
+                  localFiles={localFiles} 
+                  onBrowseClick={handleFolderLoadClick}
+                  fileInputRef={fileInputRef}
+                  onFileChange={handleFileChange}
+                />
+              )}
             </main>
 
             <Sidebar 
@@ -108,7 +112,7 @@ function App() {
           <DesktopPlayer />
           
           <MobileMiniPlayer onToggle={toggleMobileNowPlaying} />
-          <MobileBottomNav />
+          <MobileBottomNav currentView={currentView} setCurrentView={setCurrentView} />
           <MobileNowPlaying isOpen={mobileNowPlayingOpen} onToggle={toggleMobileNowPlaying} />
         </div>
       )}

@@ -6,7 +6,7 @@ const LoadingScreen = ({ loading }) => {
   return (
     <div id="loading-screen" style={{ opacity: 1 }}>
       <div className="logo-container">
-        <img src="/Logo.png" alt="Zema Loading Logo" className="loading-logo" />
+        <img src="src\assets\Logo.png" alt="Zema Loading Logo" className="loading-logo" />
       </div>
     </div>
   );

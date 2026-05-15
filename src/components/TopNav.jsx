@@ -1,16 +1,16 @@
 import React from 'react';
 
-const TopNav = () => (
+const TopNav = ({ currentView, setCurrentView }) => (
   <header className="top-nav desktop-only">
     <div className="nav-container-centered">
       <div className="nav-left">
         <div className="logo-wrapper">
-          <img src="/Logo_copy.png" alt="Zema Logo" className="app-logo" />
+          <img src="src\assets\Logo_copy.png" alt="Zema Logo" className="app-logo" />
           <span className="logo-text">Zema</span>
         </div>
         <nav className="nav-links">
-          <a href="#" className="active">Home</a>
-          <a href="#">Library</a>
+          <a href="#" className={currentView === 'Home' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('Home'); }}>Home</a>
+          <a href="#" className={currentView === 'Library' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('Library'); }}>Library</a>
           <a href="#">Equalizer</a>
         </nav>
       </div>
@@ -20,10 +20,6 @@ const TopNav = () => (
           <span className="material-symbols-rounded">search</span>
           <input type="text" placeholder="Search your local music..." />
         </div>
-      </div>
-      
-      <div className="nav-right">
-        <button className="icon-btn"><span className="material-symbols-rounded">settings</span></button>
       </div>
     </div>
   </header>
