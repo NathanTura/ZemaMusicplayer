@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import usePlayerStore from '../store/usePlayerStore';
 
 const PRESETS = {
   Flat:       [0, 0, 0, 0, 0],
@@ -12,20 +13,19 @@ const PRESETS = {
 const BANDS = ['60Hz', '230Hz', '910Hz', '3.6kHz', '14kHz'];
 
 const EqualizerView = () => {
-  const [enabled, setEnabled] = useState(true);
+  const { eqEnabled, eqGains, setEqEnabled, setEqGains } = usePlayerStore();
   const [activePreset, setActivePreset] = useState('Flat');
-  const [gains, setGains] = useState([0, 0, 0, 0, 0]);
 
   const applyPreset = (name) => {
     setActivePreset(name);
-    setGains(PRESETS[name]);
+    setEqGains([...PRESETS[name]]);
   };
 
   const updateGain = (index, value) => {
     setActivePreset(null);
-    const next = [...gains];
+    const next = [...eqGains];
     next[index] = Number(value);
-    setGains(next);
+    setEqGains(next);
   };
 
   return (
@@ -37,11 +37,11 @@ const EqualizerView = () => {
           <h1 className="eq-title">Equalizer</h1>
         </div>
         <button
-          className={`eq-power-btn ${enabled ? 'on' : 'off'}`}
-          onClick={() => setEnabled(!enabled)}
+          className={`eq-power-btn ${eqEnabled ? 'on' : 'off'}`}
+          onClick={() => setEqEnabled(!eqEnabled)}
         >
           <span className="material-symbols-rounded">power_settings_new</span>
-          <span>{enabled ? 'On' : 'Off'}</span>
+          <span>{eqEnabled ? 'On' : 'Off'}</span>
         </button>
       </div>
 
@@ -52,8 +52,8 @@ const EqualizerView = () => {
           {Object.keys(PRESETS).map((name) => (
             <button
               key={name}
-              className={`eq-preset-btn ${activePreset === name ? 'active' : ''} ${!enabled ? 'disabled' : ''}`}
-              onClick={() => enabled && applyPreset(name)}
+              className={`eq-preset-btn ${activePreset === name ? 'active' : ''} ${!eqEnabled ? 'disabled' : ''}`}
+              onClick={() => eqEnabled && applyPreset(name)}
             >
               {name}
             </button>
@@ -62,20 +62,20 @@ const EqualizerView = () => {
       </div>
 
       {/* Sliders */}
-      <div className={`eq-section eq-sliders-section ${!enabled ? 'eq-disabled' : ''}`}>
+      <div className={`eq-section eq-sliders-section ${!eqEnabled ? 'eq-disabled' : ''}`}>
         <p className="eq-section-label">Frequency Bands</p>
         <div className="eq-sliders">
           {BANDS.map((band, i) => (
             <div key={band} className="eq-band">
               <div className="eq-slider-container">
-                <span className="eq-gain-value">{gains[i] > 0 ? `+${gains[i]}` : gains[i]}dB</span>
+                <span className="eq-gain-value">{eqGains[i] > 0 ? `+${eqGains[i]}` : eqGains[i]}dB</span>
                 <div className="eq-slider-wrapper">
                   <div className="eq-slider-track-bg">
                     <div 
                       className="eq-slider-fill-active"
                       style={{ 
-                        height: `${((gains[i] + 12) / 24) * 100}%`,
-                        background: gains[i] > 0 ? 'var(--color-primary)' : gains[i] < 0 ? '#ff5252' : '#888'
+                        height: `${((eqGains[i] + 12) / 24) * 100}%`,
+                        background: eqGains[i] > 0 ? 'var(--color-primary)' : eqGains[i] < 0 ? '#ff5252' : '#888'
                       }}
                     />
                   </div>
@@ -85,8 +85,8 @@ const EqualizerView = () => {
                     min="-12"
                     max="12"
                     step="1"
-                    value={gains[i]}
-                    disabled={!enabled}
+                    value={eqGains[i]}
+                    disabled={!eqEnabled}
                     onChange={(e) => updateGain(i, e.target.value)}
                   />
                 </div>
@@ -98,7 +98,7 @@ const EqualizerView = () => {
       </div>
 
       {/* Visualizer bar */}
-      <div className={`eq-section eq-viz-section ${!enabled ? 'eq-disabled' : ''}`}>
+      <div className={`eq-section eq-viz-section ${!eqEnabled ? 'eq-disabled' : ''}`}>
         <p className="eq-section-label">Response Curve</p>
         <div className="eq-viz">
           <svg viewBox="0 0 400 100" preserveAspectRatio="none" className="eq-svg">
@@ -109,11 +109,11 @@ const EqualizerView = () => {
               </linearGradient>
             </defs>
             <path
-              d={`M 0 ${50 - gains[0] * 2} Q 80 ${50 - gains[1] * 2} 160 ${50 - gains[2] * 2} Q 240 ${50 - gains[3] * 2} 320 ${50 - gains[4] * 2} L 400 ${50 - gains[4] * 2} L 400 100 L 0 100 Z`}
+              d={`M 0 ${50 - eqGains[0] * 2} Q 80 ${50 - eqGains[1] * 2} 160 ${50 - eqGains[2] * 2} Q 240 ${50 - eqGains[3] * 2} 320 ${50 - eqGains[4] * 2} L 400 ${50 - eqGains[4] * 2} L 400 100 L 0 100 Z`}
               fill="url(#eqGrad)"
             />
             <path
-              d={`M 0 ${50 - gains[0] * 2} Q 80 ${50 - gains[1] * 2} 160 ${50 - gains[2] * 2} Q 240 ${50 - gains[3] * 2} 320 ${50 - gains[4] * 2} L 400 ${50 - gains[4] * 2}`}
+              d={`M 0 ${50 - eqGains[0] * 2} Q 80 ${50 - eqGains[1] * 2} 160 ${50 - eqGains[2] * 2} Q 240 ${50 - eqGains[3] * 2} 320 ${50 - eqGains[4] * 2} L 400 ${50 - eqGains[4] * 2}`}
               fill="none"
               stroke="var(--color-primary)"
               strokeWidth="2"

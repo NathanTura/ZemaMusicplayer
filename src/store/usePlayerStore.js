@@ -1,0 +1,169 @@
+import { create } from 'zustand';
+import { get as getIDB, set as setIDB } from 'idb-keyval';
+
+const usePlayerStore = create((set, get) => ({
+  // Library State
+  zemaRootSelected: false,
+  singles: [],
+  albums: [],
+  playlists: [],
+  history: [],
+  likes: [],
+  
+  // Playback State
+  queue: [],
+  currentIndex: -1,
+  currentTrack: null,
+  isPlaying: false,
+  progress: 0,
+  duration: 0,
+  volume: 1,
+  
+  // Equalizer State
+  eqEnabled: true,
+  eqGains: [0, 0, 0, 0, 0],
+  
+  // Playback Modes
+  isShuffle: false,
+  repeatMode: 'off', // 'off', 'all', 'one'
+
+  // Audio Engine triggers
+  audioElement: null,
+
+  setZemaRootSelected: (status) => set({ zemaRootSelected: status }),
+  setLibrary: (singles, albums, playlists) => set({ singles, albums, playlists }),
+  
+  setAudioElement: (audio) => set({ audioElement: audio }),
+  
+  setEqEnabled: (enabled) => set({ eqEnabled: enabled }),
+  setEqGains: (gains) => set({ eqGains: gains }),
+  
+  toggleShuffle: () => set((state) => ({ isShuffle: !state.isShuffle })),
+  cycleRepeat: () => set((state) => {
+    const modes = ['off', 'all', 'one'];
+    const nextIndex = (modes.indexOf(state.repeatMode) + 1) % modes.length;
+    return { repeatMode: modes[nextIndex] };
+  }),
+  
+  playTrack: (track, newQueue = null) => set((state) => {
+    let queue = newQueue || state.queue;
+    if (!newQueue && state.queue.length === 0) {
+      queue = [track];
+    }
+    
+    // Update history
+    const historyWithoutTrack = state.history.filter(t => t.id !== track.id);
+    const newHistory = [track, ...historyWithoutTrack].slice(0, 50); // Keep last 50
+    setIDB('zema_history', newHistory.map(t => t.id)).catch(console.error);
+
+    const index = queue.findIndex(t => t.id === track.id);
+    return {
+      currentTrack: track,
+      queue,
+      history: newHistory,
+      currentIndex: index !== -1 ? index : 0,
+      isPlaying: true
+    };
+  }),
+
+  togglePlay: () => set((state) => {
+    if (!state.currentTrack) return state;
+    return { isPlaying: !state.isPlaying };
+  }),
+
+  toggleLike: (track) => set((state) => {
+    const isLiked = state.likes.some(t => t.id === track.id);
+    let newLikes;
+    if (isLiked) {
+      newLikes = state.likes.filter(t => t.id !== track.id);
+    } else {
+      newLikes = [track, ...state.likes];
+    }
+    setIDB('zema_likes', newLikes.map(t => t.id)).catch(console.error);
+    return { likes: newLikes };
+  }),
+
+  rehydrateData: async () => {
+    try {
+      const { singles, albums } = get();
+      const allTracks = [...singles];
+      albums.forEach(a => allTracks.push(...a.tracks));
+      
+      const historyIds = await getIDB('zema_history') || [];
+      const likesIds = await getIDB('zema_likes') || [];
+      
+      const hydratedHistory = historyIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
+      const hydratedLikes = likesIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
+      
+      set({ history: hydratedHistory, likes: hydratedLikes });
+    } catch (e) {
+      console.error("Failed to rehydrate data", e);
+    }
+  },
+
+  nextTrack: () => set((state) => {
+    if (state.queue.length === 0 || state.currentIndex === -1) return state;
+    if (state.repeatMode === 'one') {
+      if (state.audioElement) state.audioElement.currentTime = 0;
+      return { isPlaying: true };
+    }
+    
+    let nextIndex;
+    if (state.isShuffle) {
+      nextIndex = Math.floor(Math.random() * state.queue.length);
+    } else {
+      nextIndex = state.currentIndex + 1;
+      if (nextIndex >= state.queue.length) {
+        if (state.repeatMode === 'all') {
+          nextIndex = 0;
+        } else {
+          return { isPlaying: false, progress: 0 };
+        }
+      }
+    }
+    
+    return {
+      currentIndex: nextIndex,
+      currentTrack: state.queue[nextIndex],
+      isPlaying: true
+    };
+  }),
+
+  prevTrack: () => set((state) => {
+    if (state.queue.length === 0 || state.currentIndex === -1) return state;
+    // If progress > 3 seconds, usually prev just restarts the track
+    if (state.progress > 3) {
+      if (state.audioElement) state.audioElement.currentTime = 0;
+      return state;
+    }
+    const prevIndex = (state.currentIndex - 1 + state.queue.length) % state.queue.length;
+    return {
+      currentIndex: prevIndex,
+      currentTrack: state.queue[prevIndex],
+      isPlaying: true
+    };
+  }),
+
+  seek: (time) => {
+    const { audioElement } = get();
+    if (audioElement) {
+      audioElement.currentTime = time;
+    }
+    set({ progress: time });
+  },
+
+  setVolume: (level) => {
+    const { audioElement } = get();
+    if (audioElement) {
+      audioElement.volume = level;
+    }
+    set({ volume: level });
+  },
+
+  // State updaters for Audio Engine
+  setProgress: (progress) => set({ progress }),
+  setDuration: (duration) => set({ duration }),
+  setIsPlaying: (isPlaying) => set({ isPlaying }),
+}));
+
+export default usePlayerStore;

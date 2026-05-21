@@ -11,6 +11,9 @@ import DesktopPlayer from './components/DesktopPlayer';
 import MobileMiniPlayer from './components/MobileMiniPlayer';
 import MobileBottomNav from './components/MobileBottomNav';
 import MobileNowPlaying from './components/MobileNowPlaying';
+import AudioEngine from './components/AudioEngine';
+import usePlayerStore from './store/usePlayerStore';
+import { checkZemaRootExists, loadLibrary } from './services/FileSystem';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -19,6 +22,8 @@ function App() {
   const [localFiles, setLocalFiles] = useState([]);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   
+  const { setZemaRootSelected, setLibrary, rehydrateData } = usePlayerStore();
+
   const viewOrder = useMemo(() => ['Home', 'Library', 'Equalizer'], []);
   const [direction, setDirection] = useState(0);
 
@@ -41,11 +46,25 @@ function App() {
   const isResizing = useRef(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const initializeApp = async () => {
+      const exists = await checkZemaRootExists();
+      setZemaRootSelected(exists);
+      
+      if (exists) {
+        try {
+          const { singles, albums, playlists } = await loadLibrary();
+          setLibrary(singles, albums, playlists);
+          await rehydrateData();
+        } catch (error) {
+          console.error("Error loading library:", error);
+        }
+      }
+      
       setLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    };
+
+    initializeApp();
+  }, [setZemaRootSelected, setLibrary, rehydrateData]);
 
   const handleFolderLoadClick = () => {
     if (fileInputRef.current) {
@@ -112,6 +131,7 @@ function App() {
       
       {!loading && (
         <div id="app">
+          <AudioEngine />
           <TopNav currentView={currentView} setCurrentView={handleSetView} />
           <MobileTopNav setCurrentView={handleSetView} />
 

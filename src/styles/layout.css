@@ -13,6 +13,17 @@
   width: 100vw; 
 }
 
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+input, textarea {
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
 .main-container { 
   display: flex; 
   flex: 1; 
