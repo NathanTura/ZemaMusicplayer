@@ -1,6 +1,10 @@
 import React from 'react';
+import usePlayerStore from '../store/usePlayerStore';
 
-const TopNav = ({ currentView, setCurrentView }) => (
+const TopNav = ({ currentView, setCurrentView }) => {
+  const { searchQuery, setSearchQuery } = usePlayerStore();
+  
+  return (
   <header className="top-nav desktop-only">
     <div className="nav-container-centered">
       <div className="nav-left">
@@ -18,11 +22,17 @@ const TopNav = ({ currentView, setCurrentView }) => (
       <div className="nav-center">
         <div className="nav-search">
           <span className="material-symbols-rounded">search</span>
-          <input type="text" placeholder="Search your local music..." />
+          <input 
+            type="text" 
+            placeholder="Search your local music..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
     </div>
   </header>
-);
+  );
+};
 
 export default TopNav;
