@@ -6,6 +6,7 @@ import MobileTopNav from './components/MobileTopNav';
 import HomeView from './views/HomeView';
 import LibraryView from './views/LibraryView';
 import EqualizerView from './views/EqualizerView';
+import SearchView from './views/SearchView';
 import Sidebar from './components/Sidebar';
 import DesktopPlayer from './components/DesktopPlayer';
 import MobileMiniPlayer from './components/MobileMiniPlayer';
@@ -22,7 +23,7 @@ function App() {
   const [localFiles, setLocalFiles] = useState([]);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   
-  const { setZemaRootSelected, setLibrary, rehydrateData } = usePlayerStore();
+  const { setZemaRootSelected, setLibrary, rehydrateData, searchQuery } = usePlayerStore();
 
   const viewOrder = useMemo(() => ['Home', 'Library', 'Equalizer'], []);
   const [direction, setDirection] = useState(0);
@@ -137,34 +138,38 @@ function App() {
 
           <div className="main-container">
             <main className="content">
-              <AnimatePresence mode="popLayout" custom={direction}>
-                <motion.div
-                  key={currentView}
-                  custom={direction}
-                  variants={pageVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={{
-                    x: { type: "spring", stiffness: 400, damping: 35 },
-                    opacity: { duration: 0.2 }
-                  }}
-                  style={{ width: '100%' }}
-                >
-                  {currentView === 'Home' ? (
-                    <HomeView />
-                  ) : currentView === 'Library' ? (
-                    <LibraryView 
-                      localFiles={localFiles} 
-                      onBrowseClick={handleFolderLoadClick}
-                      fileInputRef={fileInputRef}
-                      onFileChange={handleFileChange}
-                    />
-                  ) : (
-                    <EqualizerView />
-                  )}
-                </motion.div>
-              </AnimatePresence>
+              {searchQuery && searchQuery.trim().length >= 2 ? (
+                <SearchView />
+              ) : (
+                <AnimatePresence mode="popLayout" custom={direction}>
+                  <motion.div
+                    key={currentView}
+                    custom={direction}
+                    variants={pageVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{
+                      x: { type: "spring", stiffness: 400, damping: 35 },
+                      opacity: { duration: 0.2 }
+                    }}
+                    style={{ width: '100%' }}
+                  >
+                    {currentView === 'Home' ? (
+                      <HomeView />
+                    ) : currentView === 'Library' ? (
+                      <LibraryView 
+                        localFiles={localFiles} 
+                        onBrowseClick={handleFolderLoadClick}
+                        fileInputRef={fileInputRef}
+                        onFileChange={handleFileChange}
+                      />
+                    ) : (
+                      <EqualizerView />
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              )}
             </main>
 
             <Sidebar 

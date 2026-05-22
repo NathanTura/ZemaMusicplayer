@@ -1,5 +1,6 @@
 import React from 'react';
 import usePlayerStore from '../store/usePlayerStore';
+import SearchDropdown from './SearchDropdown';
 
 const TopNav = ({ currentView, setCurrentView }) => {
   const { searchQuery, setSearchQuery } = usePlayerStore();
@@ -24,11 +25,17 @@ const TopNav = ({ currentView, setCurrentView }) => {
           <span className="material-symbols-rounded">search</span>
           <input 
             type="text" 
-            placeholder="Search your local music..." 
+            placeholder="Search music..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          {searchQuery && (
+            <button className="search-clear-btn" onClick={() => setSearchQuery('')}>
+              <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>close</span>
+            </button>
+          )}
         </div>
+        <SearchDropdown />
       </div>
     </div>
   </header>
