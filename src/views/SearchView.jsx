@@ -67,8 +67,32 @@ const SearchView = () => {
     setPreviewingId(track.trackId);
   };
 
-  const handleDownload = (track) => {
-    alert(`Download feature coming soon!\n\nSong: ${track.trackName}\nArtist: ${track.artistName}\n\nThis will use a Telegram bot to download the full track.`);
+  const handleDownload = async (track) => {
+    const query = `${track.trackName} ${track.artistName}`;
+    const backendUrl = "http://localhost:8000"; // TODO: Update to Render URL later
+    
+    alert(`Starting download for ${track.trackName}... This might take a few seconds.`);
+    
+    try {
+      const response = await fetch(`${backendUrl}/download?query=${encodeURIComponent(query)}`);
+      
+      if (!response.ok) throw new Error("Download failed from backend");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${track.artistName} - ${track.trackName}.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      alert(`Successfully downloaded ${track.trackName}! Move it to your Zema folder to see it in your library.`);
+    } catch (e) {
+      console.error(e);
+      alert(`Failed to download: ${e.message}`);
+    }
   };
 
   if (!searchQuery || searchQuery.trim().length < 2) {

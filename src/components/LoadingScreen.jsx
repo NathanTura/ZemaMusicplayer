@@ -5,8 +5,8 @@ const LoadingScreen = ({ loading }) => {
   
   return (
     <div id="loading-screen" style={{ opacity: 1 }}>
-      <div className="logo-container">
-        <img src="src\assets\Logo.png" alt="Zema Loading Logo" className="loading-logo" />
+      <div style={{ position: 'relative' }}>
+        <img src="/logo.png" alt="Zema Loading Logo" className="loading-logo" />
       </div>
     </div>
   );

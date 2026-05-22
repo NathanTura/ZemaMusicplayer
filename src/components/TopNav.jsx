@@ -10,7 +10,7 @@ const TopNav = ({ currentView, setCurrentView }) => {
     <div className="nav-container-centered">
       <div className="nav-left">
         <div className="logo-wrapper" onClick={() => setCurrentView('Home')} style={{ cursor: 'pointer' }}>
-          <img src="src\assets\Logo_copy.png" alt="Zema Logo" className="app-logo" />
+          <img src="/logo.png" alt="Zema Logo" className="app-logo" />
           <span className="logo-text">Zema</span>
         </div>
         <nav className="nav-links">
