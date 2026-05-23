@@ -69,7 +69,7 @@ const SearchView = () => {
 
   const handleDownload = async (track) => {
     const query = `${track.trackName} ${track.artistName}`;
-    const backendUrl = "http://localhost:8000"; // TODO: Update to Render URL later
+    const backendUrl = process.env.SearchViewurl; // TODO: Update to Render URL later
     
     alert(`Starting download for ${track.trackName}... This might take a few seconds.`);
     
