@@ -63,7 +63,7 @@ export async function startDownload(track, backendUrl = DEFAULT_BACKEND_URL) {
     }
 
     const blob = await res.blob();
-    const safeName = `${title}.mp3`;
+    const safeName = `${title} - ${artist}.mp3`;
     await saveCompletedFile(blob, safeName);
     usePlayerStore.getState().updateDownload(id, 'completed');
   } catch (error) {
