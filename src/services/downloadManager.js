@@ -1,143 +1,205 @@
 import usePlayerStore from '../store/usePlayerStore';
 import { saveBlobToSingles, loadLibrary } from './FileSystem';
 
-const controllers = new Map();
+const DEFAULT_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const pollers = new Map();
+const POLL_INTERVAL_MS = 500;
 
-function now() { return Date.now(); }
+function buildQuery(track) {
+  return `${track.title || track.trackName || track.name || 'Unknown'} ${track.artist || track.artistName || ''}`.trim();
+}
 
-export async function startDownload(track, backendUrl) {
-  const id = Date.now().toString();
+function getDownloadTitle(track) {
+  return track.title || track.trackName || track.name || 'Unknown';
+}
+
+async function saveCompletedFile(blob, filename) {
+  const saved = await saveBlobToSingles(blob, filename);
+  if (saved) {
+    try {
+      const lib = await loadLibrary();
+      usePlayerStore.getState().setLibrary(lib.singles, lib.albums, lib.playlists);
+    } catch (error) {
+      console.error('Failed to reload library after download', error);
+    }
+  } else {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+}
+
+function clearPoller(id) {
+  const task = pollers.get(id);
+  if (!task) return;
+  if (task.timeoutId) {
+    clearTimeout(task.timeoutId);
+  }
+  pollers.delete(id);
+}
+
+async function finalizeDownload(id, backendUrl, filename) {
+  const task = pollers.get(id);
+  if (!task) return;
+
+  try {
+    const res = await fetch(`${backendUrl}/download/file/${id}`, { signal: task.controller.signal });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'Failed to fetch completed download file');
+    }
+
+    const blob = await res.blob();
+    const safeName = filename ? filename.replace(/\.[^.]+$/, '') + '.mp3' : `${getDownloadTitle(usePlayerStore.getState().activeDownloads.find(d => d.id === id) || { title: 'download' })}.mp3`;
+    await saveCompletedFile(blob, safeName);
+    usePlayerStore.getState().updateDownloadProgress(id, task.total || task.progress || blob.size, task.total || task.progress || blob.size);
+    usePlayerStore.getState().updateDownload(id, 'completed');
+  } catch (error) {
+    if (task.controller.signal.aborted) {
+      usePlayerStore.getState().updateDownload(id, 'paused');
+    } else {
+      console.error('Failed to finalize download', error);
+      usePlayerStore.getState().updateDownload(id, 'failed');
+    }
+    throw error;
+  } finally {
+    clearPoller(id);
+  }
+}
+
+async function pollStatus(id, backendUrl) {
+  const task = pollers.get(id);
+  if (!task) return;
+
+  try {
+    const res = await fetch(`${backendUrl}/download/status/${id}`, { signal: task.controller.signal });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'Failed to fetch download status');
+    }
+
+    const status = await res.json();
+    const progress = status.downloaded_bytes || 0;
+    const total = status.total_bytes || 0;
+    const updates = {
+      status: status.status,
+      speed: status.speed || 0,
+      eta: status.eta || 0,
+      percent: status.percent || 0,
+    };
+
+    usePlayerStore.getState().updateDownloadStats(id, updates);
+    usePlayerStore.getState().updateDownloadProgress(id, progress, total);
+
+    if (status.status === 'completed') {
+      await finalizeDownload(id, backendUrl, status.filename);
+      return;
+    }
+
+    if (status.status === 'failed' || status.status === 'canceled') {
+      usePlayerStore.getState().updateDownload(id, status.status);
+      clearPoller(id);
+      return;
+    }
+
+    task.total = total;
+    task.progress = progress;
+    task.timeoutId = setTimeout(() => pollStatus(id, backendUrl), POLL_INTERVAL_MS);
+  } catch (error) {
+    if (task.controller.signal.aborted) {
+      return;
+    }
+    console.error('Download status polling error', error);
+    usePlayerStore.getState().updateDownload(id, 'failed');
+    clearPoller(id);
+  }
+}
+
+export async function startDownload(track, backendUrl = DEFAULT_BACKEND_URL) {
+  const query = buildQuery(track);
+  const title = getDownloadTitle(track);
+  const artist = track.artist || track.artistName || '';
+
+  const response = await fetch(`${backendUrl}/download/start?query=${encodeURIComponent(query)}`, {
+    method: 'POST'
+  });
+
+  if (!response.ok) {
+    const errorMessage = await response.text();
+    throw new Error(errorMessage || 'Failed to queue download');
+  }
+
+  const data = await response.json();
+  const id = data.jobId;
   const downloadObj = {
     id,
-    title: track.title || track.trackName || track.name || 'Unknown',
-    artist: track.artist || track.artistName || '',
-    status: 'downloading',
+    query,
+    title,
+    artist,
+    status: 'queued',
     progress: 0,
     total: 0,
-    speed: 0
+    speed: 0,
+    percent: 0,
+    eta: 0
   };
 
   usePlayerStore.getState().addDownloadObject(downloadObj);
-
   const controller = new AbortController();
-  controllers.set(id, controller);
+  pollers.set(id, { controller, timeoutId: null, progress: 0, total: 0 });
 
-  try {
-    const res = await fetch(`${backendUrl}/download?query=${encodeURIComponent(downloadObj.title + ' ' + downloadObj.artist)}`, { signal: controller.signal });
-    if (!res.ok) throw new Error('Download failed');
-
-    const contentLength = res.headers.get('content-length');
-    const total = contentLength ? parseInt(contentLength, 10) : 0;
-    usePlayerStore.getState().updateDownloadProgress(id, 0, total);
-
-    const reader = res.body.getReader();
-    const chunks = [];
-    let received = 0;
-
-    let lastTime = now();
-    let lastReceived = 0;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      received += value.length;
-
-      const t = now();
-      const dt = (t - lastTime) / 1000;
-      if (dt >= 0.5) {
-        const bytes = received - lastReceived;
-        const speed = Math.round(bytes / dt); // bytes/sec
-        usePlayerStore.getState().updateDownloadProgress(id, received, total || received);
-        usePlayerStore.getState().updateDownload(id, 'downloading');
-        // attach speed by updating object map directly
-        usePlayerStore.setState((state) => ({
-          activeDownloads: state.activeDownloads.map(d => d.id === id ? { ...d, speed } : d)
-        }));
-        lastTime = t;
-        lastReceived = received;
-      } else {
-        usePlayerStore.getState().updateDownloadProgress(id, received, total || received);
-      }
-    }
-
-    // finalize
-    const blob = new Blob(chunks, { type: 'audio/mpeg' });
-    const filename = `${downloadObj.artist ? (downloadObj.artist + ' - ') : ''}${downloadObj.title}.mp3`;
-
-    // Try saving to Zema root; fallback to browser download
-    try {
-      const saved = await saveBlobToSingles(blob, filename);
-      if (saved) {
-        // reload library
-        import('./FileSystem').then(m => m.loadLibrary().then(lib => {
-          usePlayerStore.getState().setLibrary(lib.singles, lib.albums, lib.playlists);
-        })).catch(console.error);
-      } else {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
-    } catch (e) {
-      // fallback to browser download
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    }
-
-    usePlayerStore.getState().updateDownloadProgress(id, received, received);
-    usePlayerStore.getState().updateDownload(id, 'completed');
-    controllers.delete(id);
-    return id;
-  } catch (e) {
-    if (controller.signal.aborted) {
-      // aborted: mark paused
-      usePlayerStore.getState().updateDownload(id, 'paused');
-    } else {
-      usePlayerStore.getState().updateDownload(id, 'failed');
-    }
-    controllers.delete(id);
-    console.error('Download error', e);
-    throw e;
-  }
+  pollStatus(id, backendUrl);
+  return id;
 }
 
-export function pauseDownload(id) {
-  const c = controllers.get(id);
-  if (c) {
-    c.abort();
-    // controller removed by startDownload catch
+export async function pauseDownload(id, backendUrl = DEFAULT_BACKEND_URL) {
+  const task = pollers.get(id);
+  if (task) {
+    task.controller.abort();
+    if (task.timeoutId) clearTimeout(task.timeoutId);
+    clearPoller(id);
   }
+
+  try {
+    await fetch(`${backendUrl}/download/cancel/${id}`, { method: 'POST' });
+  } catch (error) {
+    console.warn('Failed to cancel download on backend', error);
+  }
+
   usePlayerStore.getState().updateDownload(id, 'paused');
 }
 
-export async function resumeDownload(track, backendUrl, idToReplace) {
-  // when resuming we simply start a new download and remove the old one when replaced
+export async function resumeDownload(track, backendUrl = DEFAULT_BACKEND_URL, idToReplace) {
   try {
     const newId = await startDownload(track, backendUrl);
-    // remove old entry
     if (idToReplace) usePlayerStore.getState().removeDownload(idToReplace);
     return newId;
-  } catch (e) {
-    throw e;
+  } catch (error) {
+    console.error('Resume download failed', error);
+    throw error;
   }
 }
 
-export function cancelDownload(id) {
-  const c = controllers.get(id);
-  if (c) c.abort();
+export async function cancelDownload(id, backendUrl = DEFAULT_BACKEND_URL) {
+  const task = pollers.get(id);
+  if (task) {
+    task.controller.abort();
+    if (task.timeoutId) clearTimeout(task.timeoutId);
+    clearPoller(id);
+  }
+
+  try {
+    await fetch(`${backendUrl}/download/cancel/${id}`, { method: 'POST' });
+  } catch (error) {
+    console.warn('Failed to cancel download on backend', error);
+  }
+
   usePlayerStore.getState().removeDownload(id);
-  controllers.delete(id);
 }
 
 export default { startDownload, pauseDownload, resumeDownload, cancelDownload };

@@ -80,28 +80,36 @@ const DownloadsModal = () => {
                 </div>
                 <div className="download-status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                    {download.speed ? `${(download.speed/1024).toFixed(1)} KB/s` : ''}
+                    {download.speed ? `${(download.speed / 1024).toFixed(1)} KB/s` : download.status === 'queued' ? 'Queued' : download.status === 'processing' ? 'Processing' : ''}
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {download.status === 'downloading' && (
-                      <button className="icon-btn" title="Pause" onClick={() => pauseDownload(download.id)}>
-                        <span className="material-symbols-rounded">pause</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                      {download.percent ? `${download.percent.toFixed(1)}%` : ''}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {download.status === 'downloading' && (
+                        <button className="icon-btn" title="Pause" onClick={() => pauseDownload(download.id)}>
+                          <span className="material-symbols-rounded">pause</span>
+                        </button>
+                      )}
+                      {download.status === 'queued' && (
+                        <span className="material-symbols-rounded" style={{ color: 'var(--color-text-muted)' }}>schedule</span>
+                      )}
+                      {download.status === 'paused' && (
+                        <button className="icon-btn" title="Resume" onClick={() => resumeDownload({ title: download.title, artist: download.artist }, import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000', download.id)}>
+                          <span className="material-symbols-rounded">play_arrow</span>
+                        </button>
+                      )}
+                      {download.status === 'completed' && (
+                        <span className="material-symbols-rounded" style={{ color: 'var(--color-success)' }}>check_circle</span>
+                      )}
+                      {download.status === 'failed' && (
+                        <span className="material-symbols-rounded" style={{ color: 'var(--color-error)' }}>error</span>
+                      )}
+                      <button className="icon-btn remove-btn" title="Cancel/Remove" onClick={() => cancelDownload(download.id)}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>close</span>
                       </button>
-                    )}
-                    {download.status === 'paused' && (
-                      <button className="icon-btn" title="Resume" onClick={() => resumeDownload({ title: download.title, artist: download.artist }, import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000', download.id)}>
-                        <span className="material-symbols-rounded">play_arrow</span>
-                      </button>
-                    )}
-                    {download.status === 'completed' && (
-                      <span className="material-symbols-rounded" style={{ color: 'var(--color-success)' }}>check_circle</span>
-                    )}
-                    {download.status === 'failed' && (
-                      <span className="material-symbols-rounded" style={{ color: 'var(--color-error)' }}>error</span>
-                    )}
-                    <button className="icon-btn remove-btn" title="Cancel/Remove" onClick={() => cancelDownload(download.id)}>
-                      <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>close</span>
-                    </button>
+                    </div>
                   </div>
                 </div>
               </div>

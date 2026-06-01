@@ -216,6 +216,12 @@ const usePlayerStore = create((set, get) => ({
     };
   }),
 
+  updateDownloadStats: (id, updates) => set((state) => {
+    return {
+      activeDownloads: state.activeDownloads.map(d => d.id === id ? { ...d, ...updates } : d)
+    };
+  }),
+
   removeDownload: (id) => set((state) => {
     return {
       activeDownloads: state.activeDownloads.filter(d => d.id !== id)
