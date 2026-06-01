@@ -39,30 +39,35 @@ def progress_hook(job_id: str, progress_data: dict):
     if not status:
         return
 
-    updates = {}
-    if status == 'downloading':
-        updates['status'] = 'downloading'
-        updates['downloaded_bytes'] = progress_data.get('downloaded_bytes', jobs[job_id].get('downloaded_bytes', 0))
-        updates['total_bytes'] = progress_data.get('total_bytes', jobs[job_id].get('total_bytes', 0))
-        updates['speed'] = progress_data.get('speed', jobs[job_id].get('speed', 0))
-        updates['eta'] = progress_data.get('eta', jobs[job_id].get('eta', 0))
-        total_bytes = updates['total_bytes'] or jobs[job_id].get('total_bytes', 0)
-        downloaded_bytes = updates['downloaded_bytes']
-        updates['percent'] = round((downloaded_bytes / total_bytes) * 100, 2) if total_bytes else jobs[job_id].get('percent', 0)
-    elif status == 'finished':
-        updates['status'] = 'processing'
-        updates['downloaded_bytes'] = progress_data.get('downloaded_bytes', jobs[job_id].get('downloaded_bytes', 0))
-        updates['total_bytes'] = progress_data.get('total_bytes', jobs[job_id].get('total_bytes', 0))
-        updates['percent'] = 100
-        updates['filename'] = progress_data.get('filename', jobs[job_id].get('filename'))
-    elif status == 'error':
-        updates['status'] = 'failed'
-        updates['error'] = progress_data.get('message', 'Download error')
+    try:
+        updates = {}
+        if status == 'downloading':
+            updates['status'] = 'downloading'
+            downloaded = progress_data.get('downloaded_bytes', jobs[job_id].get('downloaded_bytes', 0))
+            total = progress_data.get('total_bytes', jobs[job_id].get('total_bytes', 0))
+            updates['downloaded_bytes'] = downloaded
+            updates['total_bytes'] = total
+            updates['speed'] = progress_data.get('speed', jobs[job_id].get('speed', 0))
+            updates['eta'] = progress_data.get('eta', jobs[job_id].get('eta', 0))
+            updates['percent'] = round((downloaded / total) * 100, 2) if total and downloaded > 0 else jobs[job_id].get('percent', 0)
+        elif status == 'finished':
+            updates['status'] = 'processing'
+            updates['downloaded_bytes'] = progress_data.get('downloaded_bytes', jobs[job_id].get('downloaded_bytes', 0))
+            updates['total_bytes'] = progress_data.get('total_bytes', jobs[job_id].get('total_bytes', 0))
+            updates['percent'] = 100
+            updates['filename'] = progress_data.get('filename', jobs[job_id].get('filename'))
+        elif status == 'error':
+            updates['status'] = 'failed'
+            updates['error'] = progress_data.get('message', 'Download error')
 
-    if jobs[job_id]['cancel_event'].is_set():
-        raise yt_dlp.utils.DownloadError('Download canceled by user')
+        if job_id in jobs and jobs[job_id]['cancel_event'].is_set():
+            raise yt_dlp.utils.DownloadError('Download canceled by user')
 
-    update_job(job_id, **updates)
+        if job_id in jobs:
+            update_job(job_id, **updates)
+    except Exception as e:
+        if job_id in jobs:
+            update_job(job_id, status='failed', error=str(e))
 
 
 def download_task(job_id: str, query: str):
@@ -88,10 +93,22 @@ def download_task(job_id: str, query: str):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([query])
 
+        import time
+        time.sleep(0.5)  # Give file system time to finalize the file
+        
         if jobs[job_id]['cancel_event'].is_set():
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                except:
+                    pass
             update_job(job_id, status='canceled')
         elif os.path.exists(filepath):
-            update_job(job_id, status='completed', percent=100, speed=0, eta=0)
+            file_size = os.path.getsize(filepath)
+            if file_size > 0:
+                update_job(job_id, status='completed', percent=100, speed=0, eta=0, downloaded_bytes=file_size, total_bytes=file_size)
+            else:
+                update_job(job_id, status='failed', error='Output file is empty')
         else:
             update_job(job_id, status='failed', error='Output file was not created')
     except yt_dlp.utils.DownloadError as exc:

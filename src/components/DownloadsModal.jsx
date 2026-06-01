@@ -60,32 +60,15 @@ const DownloadsModal = () => {
                         <span>
                           {download.total > 0 ? `${(download.progress / (1024 * 1024)).toFixed(2)} MB / ${(download.total / (1024 * 1024)).toFixed(2)} MB` : `${(download.progress / (1024 * 1024)).toFixed(2)} MB`}
                         </span>
-                        <span>
-                          {download.total > 0 ? `${Math.round((download.progress / download.total) * 100)}%` : ''}
-                        </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
                         <span>{download.speed ? `${(download.speed / 1024).toFixed(2)} KB/s` : ''}</span>
-                        <span>
-                          {download.speed && download.total && download.total > download.progress ? (() => {
-                            const etaSec = Math.max(0, Math.round((download.total - download.progress) / download.speed));
-                            const mins = Math.floor(etaSec / 60).toString().padStart(2, '0');
-                            const secs = (etaSec % 60).toString().padStart(2, '0');
-                            return `ETA ${mins}:${secs}`;
-                          })() : ''}
-                        </span>
                       </div>
                     </div>
                   )}
                 </div>
                 <div className="download-status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                    {download.speed ? `${(download.speed / 1024).toFixed(1)} KB/s` : download.status === 'queued' ? 'Queued' : download.status === 'processing' ? 'Processing' : ''}
-                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      {download.percent ? `${download.percent.toFixed(1)}%` : ''}
-                    </div>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       {download.status === 'downloading' && (
                         <button className="icon-btn" title="Pause" onClick={() => pauseDownload(download.id)}>
