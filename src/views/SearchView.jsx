@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 
 const SearchView = () => {
-  const { searchQuery, setSearchQuery, addToast } = usePlayerStore();
+  const { searchQuery, setSearchQuery, addToast, addDownload, updateDownload } = usePlayerStore();
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [previewingId, setPreviewingId] = useState(null);
@@ -71,6 +71,20 @@ const SearchView = () => {
     const query = `${track.trackName} ${track.artistName}`;
     const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
     
+    const trackData = {
+      title: track.trackName,
+      artist: track.artistName,
+      coverArt: track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '200x200bb') : ''
+    };
+    
+    const downloadId = Date.now().toString();
+    const newDownload = { ...trackData, id: downloadId, status: 'downloading' };
+    
+    usePlayerStore.setState(state => ({
+      activeDownloads: [newDownload, ...state.activeDownloads],
+      downloadsModalOpen: true
+    }));
+    
     addToast(`Downloading ${track.trackName}...`, 'loading');
     setSearchQuery(''); // Clear search to return to previous view
     
@@ -89,9 +103,16 @@ const SearchView = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
+      updateDownload(downloadId, 'completed');
       addToast(`Downloaded ${track.trackName}!`, 'success');
+      
+      setTimeout(() => {
+        usePlayerStore.getState().removeDownload(downloadId);
+      }, 5000);
+      
     } catch (e) {
       console.error(e);
+      updateDownload(downloadId, 'failed');
       addToast(`Failed: ${e.message}`, 'error');
     }
   };

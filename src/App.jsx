@@ -17,6 +17,7 @@ import MobileNowPlaying from './components/MobileNowPlaying';
 import AudioEngine from './components/AudioEngine';
 import Toast from './components/Toast';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
+import DownloadsModal from './components/DownloadsModal';
 import usePlayerStore from './store/usePlayerStore';
 import { checkZemaRootExists, loadLibrary } from './services/FileSystem';
 
@@ -207,6 +208,7 @@ function App() {
             track={playlistModalTrack} 
             onClose={() => setPlaylistModalTrack(null)} 
           />
+          <DownloadsModal />
         </div>
       )}
     </>

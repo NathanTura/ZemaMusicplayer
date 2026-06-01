@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 
 const SearchDropdown = () => {
-  const { searchQuery, setSearchQuery, addToast } = usePlayerStore();
+  const { searchQuery, setSearchQuery, addToast, addDownload, updateDownload } = usePlayerStore();
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [previewAudio, setPreviewAudio] = useState(null);
@@ -89,7 +89,28 @@ const SearchDropdown = () => {
 
   const handleDownload = async (track) => {
     const query = `${track.trackName} ${track.artistName}`;
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"; // Uses Render URL in production, localhost in development
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+    
+    // Create track object for download state
+    const trackData = {
+      title: track.trackName,
+      artist: track.artistName,
+      coverArt: track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '200x200bb') : ''
+    };
+    
+    // Get the generated ID from the store by temporarily subscribing or we can just let addToast handle toast, 
+    // but better, let's generate the ID here and pass it
+    const downloadId = Date.now().toString();
+    const newDownload = { ...trackData, id: downloadId, status: 'downloading' };
+    
+    // We update the store state directly via addDownload if we passed it in, 
+    // but we can just use a slightly modified action or just let the store generate ID and we retrieve it?
+    // Let's change addDownload in the store to accept an ID if provided.
+    // Actually, I can just do:
+    usePlayerStore.setState(state => ({
+      activeDownloads: [newDownload, ...state.activeDownloads],
+      downloadsModalOpen: true
+    }));
     
     addToast(`Downloading ${track.trackName}...`, 'loading');
     
@@ -108,9 +129,17 @@ const SearchDropdown = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
+      updateDownload(downloadId, 'completed');
       addToast(`Downloaded ${track.trackName}!`, 'success');
+      
+      // Auto-remove completed download after 5 seconds
+      setTimeout(() => {
+        usePlayerStore.getState().removeDownload(downloadId);
+      }, 5000);
+      
     } catch (e) {
       console.error(e);
+      updateDownload(downloadId, 'failed');
       addToast(`Failed: ${e.message}`, 'error');
     }
   };

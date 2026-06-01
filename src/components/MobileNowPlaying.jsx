@@ -1,4 +1,5 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
+import { motion, useAnimation } from 'framer-motion';
 import usePlayerStore from '../store/usePlayerStore';
 
 const formatTime = (time) => {
@@ -10,6 +11,7 @@ const formatTime = (time) => {
 
 const MobileNowPlaying = ({ isOpen, onToggle }) => {
   const [showQueue, setShowQueue] = useState(false);
+  const controls = useAnimation();
   
   const {
     currentTrack,
@@ -35,8 +37,30 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
   const percentComplete = duration > 0 ? (progress / duration) * 100 : 0;
   const isLiked = currentTrack && likes.some(t => t.id === currentTrack.id);
 
+  const handleDragEnd = (event, info) => {
+    if (info.offset.y > 100 || info.velocity.y > 500) {
+      onToggle();
+    } else {
+      controls.start({ y: 0 });
+    }
+  };
+
+  React.useEffect(() => {
+    if (isOpen) {
+      controls.start({ y: 0 });
+    }
+  }, [isOpen, controls]);
+
   return (
-    <div className={`mobile-now-playing mobile-only ${isOpen ? 'open' : ''}`}>
+    <motion.div 
+      className={`mobile-now-playing mobile-only ${isOpen ? 'open' : ''}`}
+      drag="y"
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={{ top: 0, bottom: 1 }}
+      onDragEnd={handleDragEnd}
+      animate={controls}
+      style={{ y: 0 }}
+    >
       <header className="now-playing-header">
          <button className="icon-btn" onClick={onToggle}><span className="material-symbols-rounded">keyboard_arrow_down</span></button>
          <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{showQueue ? 'Queue' : 'Now Playing'}</span>
@@ -136,7 +160,7 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
          </button>
          <button className="action-btn"><span className="material-symbols-rounded">equalizer</span></button>
       </footer>
-    </div>
+    </motion.div>
   );
 };
 

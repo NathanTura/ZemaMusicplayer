@@ -15,6 +15,8 @@ const usePlayerStore = create((set, get) => ({
   playlistModalTrack: null,
   searchQuery: '',
   toasts: [],
+  activeDownloads: [],
+  downloadsModalOpen: false,
   
   // Playback State
   queue: [],
@@ -60,6 +62,24 @@ const usePlayerStore = create((set, get) => ({
     });
     setIDB('zema_custom_playlists', newPlaylists).catch(console.error);
     return { customPlaylists: newPlaylists };
+  }),
+
+  removeFromPlaylist: (playlistId, trackId) => set((state) => {
+    const newPlaylists = state.customPlaylists.map(p => {
+      if (p.id === playlistId) {
+        return { ...p, tracks: p.tracks.filter(t => t.id !== trackId) };
+      }
+      return p;
+    });
+    setIDB('zema_custom_playlists', newPlaylists).catch(console.error);
+    
+    // If the currently viewed playlist was modified, update selectedPlaylist
+    let newSelectedPlaylist = state.selectedPlaylist;
+    if (newSelectedPlaylist && newSelectedPlaylist.id === playlistId) {
+      newSelectedPlaylist = newPlaylists.find(p => p.id === playlistId);
+    }
+    
+    return { customPlaylists: newPlaylists, selectedPlaylist: newSelectedPlaylist };
   }),
 
   addToast: (message, type = 'info') => set((state) => {
@@ -206,6 +226,28 @@ const usePlayerStore = create((set, get) => ({
   setProgress: (progress) => set({ progress }),
   setDuration: (duration) => set({ duration }),
   setIsPlaying: (isPlaying) => set({ isPlaying }),
+
+  setDownloadsModalOpen: (isOpen) => set({ downloadsModalOpen: isOpen }),
+  
+  addDownload: (track) => set((state) => {
+    const newDownload = { ...track, id: Date.now().toString(), status: 'downloading' };
+    return { 
+      activeDownloads: [newDownload, ...state.activeDownloads],
+      downloadsModalOpen: true // Auto-open when starting a download
+    };
+  }),
+
+  updateDownload: (id, status) => set((state) => {
+    return {
+      activeDownloads: state.activeDownloads.map(d => d.id === id ? { ...d, status } : d)
+    };
+  }),
+
+  removeDownload: (id) => set((state) => {
+    return {
+      activeDownloads: state.activeDownloads.filter(d => d.id !== id)
+    };
+  })
 }));
 
 export default usePlayerStore;

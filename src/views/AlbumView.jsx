@@ -48,7 +48,13 @@ const AlbumView = ({ setCurrentView, album }) => {
       <div className="collection-tracks">
         {album.tracks.map((track, i) => (
           <div className="track-item" key={i} onClick={() => playTrack(track, album.tracks)}>
-            <div className="track-index">{i + 1}</div>
+            <div className="track-icon">
+              {track.coverArt ? (
+                <img src={track.coverArt} alt="" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px'}} />
+              ) : (
+                <span className="material-symbols-rounded">music_note</span>
+              )}
+            </div>
             <div className="track-info">
               <div className="track-name">{track.title}</div>
               <div className="track-artist">{track.artist}</div>

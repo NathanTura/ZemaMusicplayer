@@ -3,7 +3,9 @@ import usePlayerStore from '../store/usePlayerStore';
 import SearchDropdown from './SearchDropdown';
 
 const TopNav = ({ currentView, setCurrentView }) => {
-  const { searchQuery, setSearchQuery } = usePlayerStore();
+  const { searchQuery, setSearchQuery, activeDownloads, setDownloadsModalOpen } = usePlayerStore();
+  
+  const downloadingCount = activeDownloads.filter(d => d.status === 'downloading').length;
   
   return (
   <header className="top-nav desktop-only">
@@ -36,6 +38,27 @@ const TopNav = ({ currentView, setCurrentView }) => {
           )}
         </div>
         <SearchDropdown />
+      </div>
+      
+      <div className="nav-right" style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', paddingRight: '24px' }}>
+        <button 
+          className="icon-btn" 
+          onClick={() => setDownloadsModalOpen(true)}
+          style={{ position: 'relative' }}
+          title="Downloads"
+        >
+          <span className="material-symbols-rounded">download</span>
+          {downloadingCount > 0 && (
+            <span style={{
+              position: 'absolute', top: '0px', right: '0px', 
+              background: 'var(--color-primary)', color: '#000', 
+              fontSize: '10px', fontWeight: 'bold', width: '16px', height: '16px', 
+              borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              {downloadingCount}
+            </span>
+          )}
+        </button>
       </div>
     </div>
   </header>
