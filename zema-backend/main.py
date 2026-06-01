@@ -39,7 +39,10 @@ def download_song(query: str):
         'noplaylist': True,
         'quiet': True,
         'default_search': 'ytsearch',
-        'socket_timeout': 30,
+        'socket_timeout': 120,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
     }
     
     # Check for cookies file to bypass YouTube bot detection
