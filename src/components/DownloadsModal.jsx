@@ -1,5 +1,6 @@
 import React from 'react';
 import usePlayerStore from '../store/usePlayerStore';
+import { pauseDownload, resumeDownload, cancelDownload } from '../services/downloadManager';
 
 const DownloadsModal = () => {
   const { activeDownloads, downloadsModalOpen, setDownloadsModalOpen, removeDownload } = usePlayerStore();
@@ -62,21 +63,31 @@ const DownloadsModal = () => {
                     </div>
                   )}
                 </div>
-                <div className="download-status">
-                  {download.status === 'downloading' && (
-                    <div className="spinner-small"></div>
-                  )}
-                  {download.status === 'completed' && (
-                    <span className="material-symbols-rounded" style={{ color: 'var(--color-success)' }}>check_circle</span>
-                  )}
-                  {download.status === 'failed' && (
-                    <span className="material-symbols-rounded" style={{ color: 'var(--color-error)' }}>error</span>
-                  )}
-                  {download.status !== 'downloading' && (
-                    <button className="icon-btn remove-btn" onClick={() => removeDownload(download.id)}>
+                <div className="download-status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                    {download.speed ? `${(download.speed/1024).toFixed(1)} KB/s` : ''}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {download.status === 'downloading' && (
+                      <button className="icon-btn" title="Pause" onClick={() => pauseDownload(download.id)}>
+                        <span className="material-symbols-rounded">pause</span>
+                      </button>
+                    )}
+                    {download.status === 'paused' && (
+                      <button className="icon-btn" title="Resume" onClick={() => resumeDownload({ title: download.title, artist: download.artist }, import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000', download.id)}>
+                        <span className="material-symbols-rounded">play_arrow</span>
+                      </button>
+                    )}
+                    {download.status === 'completed' && (
+                      <span className="material-symbols-rounded" style={{ color: 'var(--color-success)' }}>check_circle</span>
+                    )}
+                    {download.status === 'failed' && (
+                      <span className="material-symbols-rounded" style={{ color: 'var(--color-error)' }}>error</span>
+                    )}
+                    <button className="icon-btn remove-btn" title="Cancel/Remove" onClick={() => cancelDownload(download.id)}>
                       <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>close</span>
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             ))

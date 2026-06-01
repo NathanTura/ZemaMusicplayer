@@ -198,6 +198,11 @@ const usePlayerStore = create((set, get) => ({
       downloadsModalOpen: true // Auto-open when starting a download
     };
   }),
+  // Add a download object (caller provides id)
+  addDownloadObject: (downloadObj) => set((state) => ({
+    activeDownloads: [downloadObj, ...state.activeDownloads],
+    downloadsModalOpen: true
+  })),
 
   updateDownload: (id, status) => set((state) => {
     return {

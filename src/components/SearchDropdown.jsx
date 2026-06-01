@@ -89,78 +89,13 @@ const SearchDropdown = () => {
   };
 
   const handleDownload = async (track) => {
-    const query = `${track.trackName} ${track.artistName}`;
     const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
-    
-    // Create track object for download state
-    const trackData = {
-      title: track.trackName,
-      artist: track.artistName,
-      coverArt: track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '200x200bb') : ''
-    };
-    
-    // Get the generated ID from the store by temporarily subscribing or we can just let addToast handle toast, 
-    // but better, let's generate the ID here and pass it
-    const downloadId = Date.now().toString();
-    const newDownload = { ...trackData, id: downloadId, status: 'downloading' };
-    
-    // We update the store state directly via addDownload if we passed it in, 
-    // but we can just use a slightly modified action or just let the store generate ID and we retrieve it?
-    // Let's change addDownload in the store to accept an ID if provided.
-    // Actually, I can just do:
-    usePlayerStore.setState(state => ({
-      activeDownloads: [newDownload, ...state.activeDownloads],
-      downloadsModalOpen: true
-    }));
-    
     addToast(`Downloading ${track.trackName}...`, 'loading');
-    
     try {
-      const response = await fetch(`${backendUrl}/download?query=${encodeURIComponent(query)}`);
-      
-      if (!response.ok) throw new Error("Download failed from backend");
-      
-      const contentLength = response.headers.get('content-length');
-      const total = parseInt(contentLength, 10);
-      let loaded = 0;
-      
-      const reader = response.body.getReader();
-      const chunks = [];
-      
-      while(true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        loaded += value.length;
-        if (total) {
-          usePlayerStore.getState().updateDownloadProgress(downloadId, loaded, total);
-        }
-      }
-      
-      const blob = new Blob(chunks, { type: 'audio/mpeg' });
-      const filename = `${track.artistName} - ${track.trackName}.mp3`;
-      
-      // Save directly to Zema directory via File System Access API
-      const savedToZema = await saveBlobToSingles(blob, filename);
-      
-      if (savedToZema) {
-         // Reload library in background so the new track appears
-         import('../services/FileSystem').then(m => m.loadLibrary().then(lib => {
-            usePlayerStore.getState().setLibrary(lib.singles, lib.albums, lib.playlists);
-         }));
-      }
-      
-      updateDownload(downloadId, 'completed');
+      await import('../services/downloadManager').then(m => m.startDownload({ title: track.trackName, artist: track.artistName }, backendUrl));
       addToast(`Downloaded ${track.trackName}!`, 'success');
-      
-      // Auto-remove completed download after 5 seconds
-      setTimeout(() => {
-        usePlayerStore.getState().removeDownload(downloadId);
-      }, 5000);
-      
     } catch (e) {
       console.error(e);
-      updateDownload(downloadId, 'failed');
       addToast(`Failed: ${e.message}`, 'error');
     }
   };

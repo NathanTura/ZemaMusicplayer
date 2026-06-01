@@ -69,68 +69,14 @@ const SearchView = () => {
   };
 
   const handleDownload = async (track) => {
-    const query = `${track.trackName} ${track.artistName}`;
     const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
-    
-    const trackData = {
-      title: track.trackName,
-      artist: track.artistName,
-      coverArt: track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '200x200bb') : ''
-    };
-    
-    const downloadId = Date.now().toString();
-    const newDownload = { ...trackData, id: downloadId, status: 'downloading' };
-    
-    usePlayerStore.setState(state => ({
-      activeDownloads: [newDownload, ...state.activeDownloads],
-      downloadsModalOpen: true
-    }));
-    
     addToast(`Downloading ${track.trackName}...`, 'loading');
     setSearchQuery(''); // Clear search to return to previous view
-    
     try {
-      const response = await fetch(`${backendUrl}/download?query=${encodeURIComponent(query)}`);
-      
-      if (!response.ok) throw new Error("Download failed from backend");
-      
-      const contentLength = response.headers.get('content-length');
-      const total = parseInt(contentLength, 10);
-      let loaded = 0;
-      
-      const reader = response.body.getReader();
-      const chunks = [];
-      
-      while(true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        loaded += value.length;
-        if (total) {
-          usePlayerStore.getState().updateDownloadProgress(downloadId, loaded, total);
-        }
-      }
-      
-      const blob = new Blob(chunks, { type: 'audio/mpeg' });
-      const filename = `${track.artistName} - ${track.trackName}.mp3`;
-      
-      const savedToZema = await saveBlobToSingles(blob, filename);
-      if (savedToZema) {
-         import('../services/FileSystem').then(m => m.loadLibrary().then(lib => {
-            usePlayerStore.getState().setLibrary(lib.singles, lib.albums, lib.playlists);
-         }));
-      }
-      
-      updateDownload(downloadId, 'completed');
+      await import('../services/downloadManager').then(m => m.startDownload({ title: track.trackName, artist: track.artistName }, backendUrl));
       addToast(`Downloaded ${track.trackName}!`, 'success');
-      
-      setTimeout(() => {
-        usePlayerStore.getState().removeDownload(downloadId);
-      }, 5000);
-      
     } catch (e) {
       console.error(e);
-      updateDownload(downloadId, 'failed');
       addToast(`Failed: ${e.message}`, 'error');
     }
   };
