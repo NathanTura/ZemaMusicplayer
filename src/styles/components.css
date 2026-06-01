@@ -668,6 +668,7 @@ input[type=range].volume-slider-vertical::-webkit-slider-thumb {
   display: grid;
   grid-template-rows: auto auto;
   grid-auto-flow: column;
+  grid-auto-columns: 140px;
   gap: 24px;
   overflow-x: auto;
   padding-bottom: 24px;

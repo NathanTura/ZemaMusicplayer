@@ -360,13 +360,11 @@ export async function loadLibrary() {
   for await (const entry of playlistsDir.values()) {
     if (entry.kind === 'directory') {
       const playlistTracks = await getAudioFilesInDir(entry, `Playlists/${entry.name}`);
-      if (playlistTracks.length > 0) {
-        playlists.push({
-          name: entry.name,
-          handle: entry,
-          tracks: playlistTracks
-        });
-      }
+      playlists.push({
+        name: entry.name,
+        handle: entry,
+        tracks: playlistTracks
+      });
     }
   }
 

@@ -40,7 +40,7 @@ const TopNav = ({ currentView, setCurrentView }) => {
         <SearchDropdown />
       </div>
       
-      <div className="nav-right" style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', paddingRight: '24px' }}>
+      <div className="nav-right">
         <button 
           className="icon-btn" 
           onClick={() => setDownloadsModalOpen(true)}

@@ -7,18 +7,19 @@
   }
   .nav-container-centered {
     display: flex; align-items: center; justify-content: center; gap: 40px;
-    width: 100%; padding: 0 24px;
+    width: min(1200px, 100%); max-width: 1200px; margin: 0 auto;
+    padding: 0 24px;
   }
   .nav-left { display: flex; align-items: center; gap: 20px; }
   .logo-wrapper { display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .logo-text { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px; }
-  .app-logo { height: 28px; width: auto; display: block; }
+  .app-logo { height: 34px; width: auto; display: block; }
   .nav-links { display: flex; gap: 20px; }
   .nav-links a { color: var(--color-text-muted); text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: color 0.2s; }
   .nav-links a.active { color: var(--color-primary); }
   .nav-links a:hover { color: var(--color-text); }
   
-  .nav-center { display: flex; justify-content: center; }
+  .nav-center { display: flex; justify-content: center; gap: 16px; }
   .nav-search { width: 400px; background: #2a2a2a; border-radius: 4px; display: flex; align-items: center; padding: 0 12px; height: 32px; transition: background 0.2s; }
   .nav-search:focus-within { background: #333; border: 1px solid var(--color-border); }
   .nav-search input { background: none; border: none; color: #fff; width: 100%; outline: none; margin-left: 8px; font-size: 0.85rem; }
