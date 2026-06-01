@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import FolderBanner from '../components/FolderBanner';
 import usePlayerStore from '../store/usePlayerStore';
 
-const LibraryView = () => {
+const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, setCurrentView }) => {
   const tabs = useMemo(() => ['Singles', 'Albums', 'Playlists', 'History', 'Likes'], []);
   const [activeTab, setActiveTab] = useState('Singles');
   const [direction, setDirection] = useState(0);
 
-  const { singles, albums, playlists, history, likes, playTrack } = usePlayerStore();
+  const { singles, albums, playlists, customPlaylists, createPlaylist, history, likes, playTrack, setSelectedAlbum, setSelectedPlaylist } = usePlayerStore();
 
   const handleTabChange = (tab) => {
     if (tab === activeTab) return;
@@ -62,7 +62,10 @@ const LibraryView = () => {
       return (
         <div className="horizontal-scroll">
           {albums.map((album, i) => (
-            <div className="card" key={i} onClick={() => playTrack(album.tracks[0], album.tracks)}>
+            <div className="card" key={i} onClick={() => {
+              setSelectedAlbum(album);
+              setCurrentView('AlbumDetails');
+            }}>
               {album.tracks[0]?.coverArt ? (
                 <img className="card-art" src={album.tracks[0].coverArt} alt="Cover" style={{ objectFit: 'cover' }} />
               ) : (
@@ -77,20 +80,44 @@ const LibraryView = () => {
     }
 
     if (activeTab === 'Playlists') {
-      if (playlists.length === 0) return renderEmpty('Playlists', 'queue_music');
+      const allPlaylists = [...customPlaylists, ...playlists];
+      
       return (
-        <div className="horizontal-scroll">
-          {playlists.map((playlist, i) => (
-            <div className="card" key={i} onClick={() => playTrack(playlist.tracks[0], playlist.tracks)}>
-              {playlist.tracks[0]?.coverArt ? (
-                <img className="card-art" src={playlist.tracks[0].coverArt} alt="Cover" style={{ objectFit: 'cover' }} />
-              ) : (
-                <div className="card-art empty-card-art"><span className="material-symbols-rounded">queue_music</span></div>
-              )}
-              <div className="card-title">{playlist.name}</div>
-              <div className="card-subtitle">{playlist.tracks.length} tracks</div>
+        <div className="playlists-container">
+          <button 
+            className="btn-primary" 
+            style={{ marginBottom: '24px' }}
+            onClick={() => {
+              const name = prompt('Enter playlist name:');
+              if (name && name.trim()) {
+                createPlaylist(name.trim());
+              }
+            }}
+          >
+            <span className="material-symbols-rounded" style={{ verticalAlign: 'middle', marginRight: '8px' }}>add</span>
+            Create Playlist
+          </button>
+          
+          {allPlaylists.length === 0 ? (
+            renderEmpty('Playlists', 'queue_music')
+          ) : (
+            <div className="horizontal-scroll">
+              {allPlaylists.map((playlist, i) => (
+                <div className="card" key={i} onClick={() => {
+                  setSelectedPlaylist(playlist);
+                  setCurrentView('PlaylistDetails');
+                }}>
+                  {playlist.tracks[0]?.coverArt ? (
+                    <img className="card-art" src={playlist.tracks[0].coverArt} alt="Cover" style={{ objectFit: 'cover' }} />
+                  ) : (
+                    <div className="card-art empty-card-art"><span className="material-symbols-rounded">queue_music</span></div>
+                  )}
+                  <div className="card-title">{playlist.name}</div>
+                  <div className="card-subtitle">{playlist.tracks.length} tracks</div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       );
     }

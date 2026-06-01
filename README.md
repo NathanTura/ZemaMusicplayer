@@ -36,15 +36,12 @@ Zema is a **Progressive Web App (PWA)**. This means you don't need to download i
 
 To allow Zema to download songs from the web, you need to connect it to its companion backend service. 
 
-You can find the backend repository and setup instructions here: 
+**Important:** We highly recommend running the backend **locally on your computer** rather than deploying it to a cloud service like Render. Cloud servers often get blocked by YouTube's bot protection, whereas your local internet connection will work perfectly without needing complicated cookie setups!
+
+You can find the backend repository and simple 2-step setup instructions here: 
 👉 **[Zema Backend Repository](https://github.com/NathanTura/zema-backend)**
 
-Once you have your backend URL (e.g., from Render.com), simply go to your Vercel project settings for Zema and add it as an Environment Variable:
-* **Key:** `VITE_BACKEND_URL`
-* **Value:** `https://your-backend-url.onrender.com`
-
-Redeploy the frontend on Vercel, and downloads will instantly start working!
-
+Once your local backend is running (which automatically uses `http://localhost:8000`), Zema will automatically connect to it. If you choose to host it elsewhere, you can add `VITE_BACKEND_URL` to your Vercel Environment Variables.
 ---
 
 ## 💻 Local Development

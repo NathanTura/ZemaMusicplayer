@@ -25,10 +25,10 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
     isShuffle,
     repeatMode,
     toggleShuffle,
-    cycleRepeat,
     queue,
     currentIndex,
-    playTrack
+    playTrack,
+    setPlaylistModalTrack
   } = usePlayerStore();
 
   const percentComplete = duration > 0 ? (progress / duration) * 100 : 0;
@@ -39,7 +39,9 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
       <header className="now-playing-header">
          <button className="icon-btn" onClick={onToggle}><span className="material-symbols-rounded">keyboard_arrow_down</span></button>
          <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{showQueue ? 'Queue' : 'Now Playing'}</span>
-         <button className="icon-btn"><span className="material-symbols-rounded">more_vert</span></button>
+         <button className="icon-btn" onClick={() => currentTrack && setPlaylistModalTrack(currentTrack)}>
+           <span className="material-symbols-rounded">playlist_add</span>
+         </button>
       </header>
       
       <div className="now-playing-main" style={{ overflowY: showQueue ? 'auto' : 'visible' }}>

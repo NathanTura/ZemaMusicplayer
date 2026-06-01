@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 
 const SearchView = () => {
-  const { searchQuery } = usePlayerStore();
+  const { searchQuery, setSearchQuery, addToast } = usePlayerStore();
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [previewingId, setPreviewingId] = useState(null);
@@ -69,9 +69,10 @@ const SearchView = () => {
 
   const handleDownload = async (track) => {
     const query = `${track.trackName} ${track.artistName}`;
-    const backendUrl = process.env.SearchViewurl; // TODO: Update to Render URL later
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
     
-    alert(`Starting download for ${track.trackName}... This might take a few seconds.`);
+    addToast(`Downloading ${track.trackName}...`, 'loading');
+    setSearchQuery(''); // Clear search to return to previous view
     
     try {
       const response = await fetch(`${backendUrl}/download?query=${encodeURIComponent(query)}`);
@@ -88,10 +89,10 @@ const SearchView = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      alert(`Successfully downloaded ${track.trackName}! Move it to your Zema folder to see it in your library.`);
+      addToast(`Downloaded ${track.trackName}!`, 'success');
     } catch (e) {
       console.error(e);
-      alert(`Failed to download: ${e.message}`);
+      addToast(`Failed: ${e.message}`, 'error');
     }
   };
 

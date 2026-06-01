@@ -25,7 +25,8 @@ const DesktopPlayer = () => {
     isShuffle,
     repeatMode,
     toggleShuffle,
-    cycleRepeat
+    cycleRepeat,
+    setPlaylistModalTrack
   } = usePlayerStore();
 
   const percentComplete = duration > 0 ? (progress / duration) * 100 : 0;
@@ -85,6 +86,13 @@ const DesktopPlayer = () => {
 
         <div className="player-right">
           <div className="player-options">
+            <button 
+              className="icon-btn control-btn" 
+              onClick={() => currentTrack && setPlaylistModalTrack(currentTrack)} 
+              title="Add to Playlist"
+            >
+              <span className="material-symbols-rounded">playlist_add</span>
+            </button>
             <div className="volume-container" style={{ display: 'flex', alignItems: 'center', width: '130px', gap: '8px' }}>
               <button className="icon-btn control-btn" onClick={() => setVolume(volume === 0 ? 1 : 0)} style={{ padding: 0 }}>
                 <span className="material-symbols-rounded">{volume === 0 ? 'volume_off' : 'volume_up'}</span>

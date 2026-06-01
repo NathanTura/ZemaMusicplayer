@@ -9,7 +9,12 @@ const usePlayerStore = create((set, get) => ({
   playlists: [],
   history: [],
   likes: [],
+  customPlaylists: [],
+  selectedAlbum: null,
+  selectedPlaylist: null,
+  playlistModalTrack: null,
   searchQuery: '',
+  toasts: [],
   
   // Playback State
   queue: [],
@@ -34,6 +39,40 @@ const usePlayerStore = create((set, get) => ({
   setZemaRootSelected: (status) => set({ zemaRootSelected: status }),
   setLibrary: (singles, albums, playlists) => set({ singles, albums, playlists }),
   setSearchQuery: (query) => set({ searchQuery: query }),
+  setSelectedAlbum: (album) => set({ selectedAlbum: album }),
+  setSelectedPlaylist: (playlist) => set({ selectedPlaylist: playlist }),
+  setPlaylistModalTrack: (track) => set({ playlistModalTrack: track }),
+  
+  createPlaylist: (name) => set((state) => {
+    const newPlaylist = { id: Date.now().toString(), name, tracks: [] };
+    const newPlaylists = [...state.customPlaylists, newPlaylist];
+    setIDB('zema_custom_playlists', newPlaylists).catch(console.error);
+    return { customPlaylists: newPlaylists };
+  }),
+  
+  addToPlaylist: (playlistId, track) => set((state) => {
+    const newPlaylists = state.customPlaylists.map(p => {
+      if (p.id === playlistId) {
+        if (p.tracks.some(t => t.id === track.id)) return p;
+        return { ...p, tracks: [...p.tracks, track] };
+      }
+      return p;
+    });
+    setIDB('zema_custom_playlists', newPlaylists).catch(console.error);
+    return { customPlaylists: newPlaylists };
+  }),
+
+  addToast: (message, type = 'info') => set((state) => {
+    const id = Date.now().toString();
+    setTimeout(() => {
+      usePlayerStore.getState().removeToast(id);
+    }, 3000);
+    return { toasts: [...state.toasts, { id, message, type }] };
+  }),
+
+  removeToast: (id) => set((state) => ({
+    toasts: state.toasts.filter(t => t.id !== id)
+  })),
   
   setAudioElement: (audio) => set({ audioElement: audio }),
   
@@ -93,11 +132,12 @@ const usePlayerStore = create((set, get) => ({
       
       const historyIds = await getIDB('zema_history') || [];
       const likesIds = await getIDB('zema_likes') || [];
+      const savedCustomPlaylists = await getIDB('zema_custom_playlists') || [];
       
       const hydratedHistory = historyIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
       const hydratedLikes = likesIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
       
-      set({ history: hydratedHistory, likes: hydratedLikes });
+      set({ history: hydratedHistory, likes: hydratedLikes, customPlaylists: savedCustomPlaylists });
     } catch (e) {
       console.error("Failed to rehydrate data", e);
     }

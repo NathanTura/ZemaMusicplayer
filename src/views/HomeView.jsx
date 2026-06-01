@@ -1,8 +1,8 @@
 import React from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 
-const HomeView = () => {
-  const { history, playlists, playTrack } = usePlayerStore();
+const HomeView = ({ setCurrentView }) => {
+  const { history, playlists, playTrack, setSelectedPlaylist } = usePlayerStore();
 
   return (
   <div className="home-view">
@@ -41,7 +41,10 @@ const HomeView = () => {
           <div className="card"><div className="card-art empty-card-art"><span className="material-symbols-rounded">queue_music</span></div><div className="card-title">No Playlists</div><div className="card-subtitle">Local Folder</div></div>
         ) : (
           playlists.slice(0, 10).map((playlist, i) => (
-            <div className="card" key={i} onClick={() => playTrack(playlist.tracks[0], playlist.tracks)}>
+            <div className="card" key={i} onClick={() => {
+              setSelectedPlaylist(playlist);
+              setCurrentView('PlaylistDetails');
+            }}>
               {playlist.tracks[0]?.coverArt ? (
                 <img className="card-art" src={playlist.tracks[0].coverArt} alt="Cover" style={{ objectFit: 'cover' }} />
               ) : (

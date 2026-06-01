@@ -7,12 +7,16 @@ import HomeView from './views/HomeView';
 import LibraryView from './views/LibraryView';
 import EqualizerView from './views/EqualizerView';
 import SearchView from './views/SearchView';
+import AlbumView from './views/AlbumView';
+import PlaylistView from './views/PlaylistView';
 import Sidebar from './components/Sidebar';
 import DesktopPlayer from './components/DesktopPlayer';
 import MobileMiniPlayer from './components/MobileMiniPlayer';
 import MobileBottomNav from './components/MobileBottomNav';
 import MobileNowPlaying from './components/MobileNowPlaying';
 import AudioEngine from './components/AudioEngine';
+import Toast from './components/Toast';
+import AddToPlaylistModal from './components/AddToPlaylistModal';
 import usePlayerStore from './store/usePlayerStore';
 import { checkZemaRootExists, loadLibrary } from './services/FileSystem';
 
@@ -22,10 +26,14 @@ function App() {
   const [mobileNowPlayingOpen, setMobileNowPlayingOpen] = useState(false);
   const [localFiles, setLocalFiles] = useState([]);
   const [sidebarWidth, setSidebarWidth] = useState(300);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
-  const { setZemaRootSelected, setLibrary, rehydrateData, searchQuery } = usePlayerStore();
+  const { 
+    setZemaRootSelected, setLibrary, rehydrateData, searchQuery, 
+    selectedAlbum, selectedPlaylist, playlistModalTrack, setPlaylistModalTrack 
+  } = usePlayerStore();
 
-  const viewOrder = useMemo(() => ['Home', 'Library', 'Equalizer'], []);
+  const viewOrder = useMemo(() => ['Home', 'Library', 'AlbumDetails', 'PlaylistDetails', 'Equalizer'], []);
   const [direction, setDirection] = useState(0);
 
   const pageVariants = {
@@ -105,9 +113,13 @@ function App() {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -138,7 +150,7 @@ function App() {
 
           <div className="main-container">
             <main className="content">
-              {searchQuery && searchQuery.trim().length >= 2 ? (
+              {searchQuery && searchQuery.trim().length >= 2 && isMobile ? (
                 <SearchView />
               ) : (
                 <AnimatePresence mode="popLayout" custom={direction}>
@@ -156,14 +168,19 @@ function App() {
                     style={{ width: '100%' }}
                   >
                     {currentView === 'Home' ? (
-                      <HomeView />
+                      <HomeView setCurrentView={handleSetView} />
                     ) : currentView === 'Library' ? (
                       <LibraryView 
                         localFiles={localFiles} 
                         onBrowseClick={handleFolderLoadClick}
                         fileInputRef={fileInputRef}
                         onFileChange={handleFileChange}
+                        setCurrentView={handleSetView}
                       />
+                    ) : currentView === 'AlbumDetails' ? (
+                      <AlbumView setCurrentView={handleSetView} album={selectedAlbum} />
+                    ) : currentView === 'PlaylistDetails' ? (
+                      <PlaylistView setCurrentView={handleSetView} playlist={selectedPlaylist} />
                     ) : (
                       <EqualizerView />
                     )}
@@ -184,6 +201,12 @@ function App() {
           <MobileMiniPlayer onToggle={toggleMobileNowPlaying} />
           <MobileBottomNav currentView={currentView} setCurrentView={handleSetView} />
           <MobileNowPlaying isOpen={mobileNowPlayingOpen} onToggle={toggleMobileNowPlaying} />
+          <Toast />
+          <AddToPlaylistModal 
+            isOpen={!!playlistModalTrack} 
+            track={playlistModalTrack} 
+            onClose={() => setPlaylistModalTrack(null)} 
+          />
         </div>
       )}
     </>

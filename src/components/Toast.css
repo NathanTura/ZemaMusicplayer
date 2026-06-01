@@ -1,0 +1,70 @@
+.toast-container {
+  position: fixed;
+  bottom: 100px; /* Above the player */
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .toast-container {
+    bottom: 80px; /* Above mobile bottom nav */
+    right: 50%;
+    transform: translateX(50%);
+    align-items: center;
+    width: 90vw;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.toast .material-symbols-rounded {
+  font-size: 20px;
+}
+
+.toast-success .material-symbols-rounded {
+  color: #4ade80;
+}
+
+.toast-error .material-symbols-rounded {
+  color: #f87171;
+}
+
+.toast-loading .material-symbols-rounded {
+  color: #60a5fa;
+}
+
+.toast-info .material-symbols-rounded {
+  color: #facc15;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
