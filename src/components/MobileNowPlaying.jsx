@@ -25,6 +25,7 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
     isShuffle,
     repeatMode,
     toggleShuffle,
+    cycleRepeat,
     queue,
     currentIndex,
     playTrack,
