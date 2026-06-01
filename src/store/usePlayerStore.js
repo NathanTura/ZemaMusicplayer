@@ -7,6 +7,7 @@ const usePlayerStore = create((set, get) => ({
   singles: [],
   albums: [],
   playlists: [],
+  library: { singles: [], albums: [], playlists: [] },
   history: [],
   likes: [],
   selectedAlbum: null,
@@ -38,7 +39,7 @@ const usePlayerStore = create((set, get) => ({
   audioElement: null,
 
   setZemaRootSelected: (status) => set({ zemaRootSelected: status }),
-  setLibrary: (singles, albums, playlists) => set({ singles, albums, playlists }),
+  setLibrary: (singles, albums, playlists) => set({ singles, albums, playlists, library: { singles, albums, playlists } }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedAlbum: (album) => set({ selectedAlbum: album }),
   setSelectedPlaylist: (playlist) => set({ selectedPlaylist: playlist }),
