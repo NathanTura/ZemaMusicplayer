@@ -89,7 +89,7 @@ const SearchDropdown = () => {
 
   const handleDownload = async (track) => {
     const query = `${track.trackName} ${track.artistName}`;
-    const backendUrl = "http://localhost:8000"; // TODO: Update to Render URL later
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"; // Uses Render URL in production, localhost in development
     
     alert(`Starting download for ${track.trackName}... This might take a few seconds.`);
     
