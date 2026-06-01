@@ -2,11 +2,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import yt_dlp
-import yt_dlp.utils
 import os
 import uuid
-import threading
-import concurrent.futures
+import uvicorn
 
 app = FastAPI()
 
@@ -17,107 +15,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-TEMP_DIR = "/tmp" if os.name != "nt" else os.environ.get("TEMP", "C:\\temp")
-JOB_LOCK = threading.Lock()
-jobs = {}
-executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
-
-
-def get_temp_filepath(job_id: str) -> str:
-    return os.path.join(TEMP_DIR, f"{job_id}.mp3")
-
-
-def update_job(job_id: str, **kwargs):
-    with JOB_LOCK:
-        if job_id in jobs:
-            jobs[job_id].update(kwargs)
-
-
-def progress_hook(job_id: str, progress_data: dict):
-    status = progress_data.get('status')
-    if not status:
-        return
-
-    try:
-        updates = {}
-        if status == 'downloading':
-            updates['status'] = 'downloading'
-            downloaded = progress_data.get('downloaded_bytes', jobs[job_id].get('downloaded_bytes', 0))
-            total = progress_data.get('total_bytes', jobs[job_id].get('total_bytes', 0))
-            updates['downloaded_bytes'] = downloaded
-            updates['total_bytes'] = total
-            updates['speed'] = progress_data.get('speed', jobs[job_id].get('speed', 0))
-            updates['eta'] = progress_data.get('eta', jobs[job_id].get('eta', 0))
-            updates['percent'] = round((downloaded / total) * 100, 2) if total and downloaded > 0 else jobs[job_id].get('percent', 0)
-        elif status == 'finished':
-            updates['status'] = 'processing'
-            updates['downloaded_bytes'] = progress_data.get('downloaded_bytes', jobs[job_id].get('downloaded_bytes', 0))
-            updates['total_bytes'] = progress_data.get('total_bytes', jobs[job_id].get('total_bytes', 0))
-            updates['percent'] = 100
-            updates['filename'] = progress_data.get('filename', jobs[job_id].get('filename'))
-        elif status == 'error':
-            updates['status'] = 'failed'
-            updates['error'] = progress_data.get('message', 'Download error')
-
-        if job_id in jobs and jobs[job_id]['cancel_event'].is_set():
-            raise yt_dlp.utils.DownloadError('Download canceled by user')
-
-        if job_id in jobs:
-            update_job(job_id, **updates)
-    except Exception as e:
-        if job_id in jobs:
-            update_job(job_id, status='failed', error=str(e))
-
-
-def download_task(job_id: str, query: str):
-    filepath = get_temp_filepath(job_id)
-    output_template = filepath.replace('.mp3', '')
-    update_job(job_id, status='downloading', filepath=filepath, outtmpl=output_template)
-
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': output_template,
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-        'noplaylist': True,
-        'quiet': True,
-        'default_search': 'ytsearch',
-        'progress_hooks': [lambda d: progress_hook(job_id, d)],
-    }
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([query])
-
-        import time
-        time.sleep(0.5)  # Give file system time to finalize the file
-        
-        if jobs[job_id]['cancel_event'].is_set():
-            if os.path.exists(filepath):
-                try:
-                    os.remove(filepath)
-                except:
-                    pass
-            update_job(job_id, status='canceled')
-        elif os.path.exists(filepath):
-            file_size = os.path.getsize(filepath)
-            if file_size > 0:
-                update_job(job_id, status='completed', percent=100, speed=0, eta=0, downloaded_bytes=file_size, total_bytes=file_size)
-            else:
-                update_job(job_id, status='failed', error='Output file is empty')
-        else:
-            update_job(job_id, status='failed', error='Output file was not created')
-    except yt_dlp.utils.DownloadError as exc:
-        if jobs[job_id]['cancel_event'].is_set():
-            update_job(job_id, status='canceled', error=str(exc))
-        else:
-            update_job(job_id, status='failed', error=str(exc))
-    except Exception as exc:
-        update_job(job_id, status='failed', error=str(exc))
 
 
 @app.get("/")
@@ -198,3 +95,46 @@ def cancel_download(job_id: str):
     job['cancel_event'].set()
     update_job(job_id, status='canceling')
     return {'status': 'canceling'}
+@app.get("/download")
+def download_song(query: str):
+    if not query:
+        raise HTTPException(status_code=400, detail="Query is required")
+
+    # Generate a unique filename
+    filename = f"{uuid.uuid4().hex}.mp3"
+    filepath = os.path.join("/tmp" if os.name != "nt" else os.environ.get("TEMP", "C:\\temp"), filename)
+
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': filepath.replace('.mp3', ''),
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'noplaylist': True,
+        'quiet': True,
+        'default_search': 'ytsearch',
+        'socket_timeout': 30,
+    }
+    
+    # Check for cookies file to bypass YouTube bot detection
+    if os.path.exists('/etc/secrets/cookies.txt'):
+        ydl_opts['cookiefile'] = '/etc/secrets/cookies.txt'
+    elif os.path.exists('cookies.txt'):
+        ydl_opts['cookiefile'] = 'cookies.txt'
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # We use ytsearch to just find the first YouTube match for the song
+            ydl.extract_info(query, download=True)
+            
+        if os.path.exists(filepath):
+            return FileResponse(filepath, media_type="audio/mpeg", filename=f"{query}.mp3")
+        else:
+            raise HTTPException(status_code=500, detail="Failed to process audio")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
