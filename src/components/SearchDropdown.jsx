@@ -28,7 +28,13 @@ const SearchDropdown = () => {
         );
         const data = await res.json();
         if (data.results) {
-          setResults(data.results);
+          console.log('iTunes search results:', data.results);
+          // Filter results and verify previewUrl exists
+          const resultsWithPreview = data.results.map(track => ({
+            ...track,
+            previewUrl: track.previewUrl || null
+          }));
+          setResults(resultsWithPreview);
         }
       } catch (e) {
         console.warn('Search error:', e);
@@ -75,7 +81,12 @@ const SearchDropdown = () => {
   }, [searchQuery]);
 
   const handlePreview = (track) => {
-    if (!track.previewUrl) return;
+    console.log('handlePreview called:', track.trackName, 'previewUrl:', track.previewUrl);
+    
+    if (!track.previewUrl) {
+      console.warn('No preview URL available for:', track.trackName);
+      return;
+    }
 
     if (previewingId === track.trackId) {
       // Stop preview
@@ -93,8 +104,18 @@ const SearchDropdown = () => {
     }
     const audio = new Audio(track.previewUrl);
     audio.volume = 0.5;
-    audio.play().catch(console.warn);
-    audio.onended = () => setPreviewingId(null);
+    audio.play()
+      .then(() => {
+        console.log('Preview playing:', track.trackName);
+      })
+      .catch(err => {
+        console.error('Preview playback error:', err);
+        addToast(`Preview error: ${err.message}`, 'error');
+      });
+    audio.onended = () => {
+      console.log('Preview ended:', track.trackName);
+      setPreviewingId(null);
+    };
     audioRef.current = audio;
     setPreviewingId(track.trackId);
   };
