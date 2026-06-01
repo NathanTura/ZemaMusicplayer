@@ -3,7 +3,8 @@ import { saveBlobToSingles, loadLibrary } from './FileSystem';
 
 const DEFAULT_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 const pollers = new Map();
-const POLL_INTERVAL_MS = 500;
+const POLL_INTERVAL_ACTIVE = 1500; // Active download polling
+const POLL_INTERVAL_SLOW = 3000;   // Queued/Processing polling
 
 function buildQuery(track) {
   return `${track.title || track.trackName || track.name || 'Unknown'} ${track.artist || track.artistName || ''}`.trim();
@@ -109,7 +110,9 @@ async function pollStatus(id, backendUrl) {
 
     task.total = total;
     task.progress = progress;
-    task.timeoutId = setTimeout(() => pollStatus(id, backendUrl), POLL_INTERVAL_MS);
+    // Use faster polling for active downloads, slower for queued/processing
+    const interval = status.status === 'downloading' ? POLL_INTERVAL_ACTIVE : POLL_INTERVAL_SLOW;
+    task.timeoutId = setTimeout(() => pollStatus(id, backendUrl), interval);
   } catch (error) {
     if (task.controller.signal.aborted) {
       return;
