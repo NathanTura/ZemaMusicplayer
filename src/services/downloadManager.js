@@ -62,8 +62,51 @@ export async function startDownload(track, backendUrl = DEFAULT_BACKEND_URL) {
       throw new Error(errorMessage || 'Download failed');
     }
 
-    const blob = await res.blob();
-    const safeName = `${title} - ${artist}.mp3`;
+    // Track download progress
+    const total = parseInt(res.headers.get('content-length') || '0', 10);
+    let loaded = 0;
+    let lastTime = Date.now();
+    let lastLoaded = 0;
+    let speeds = [];
+
+    const reader = res.body.getReader();
+    const chunks = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      loaded += value.length;
+
+      const now = Date.now();
+      const timeDiff = (now - lastTime) / 1000;
+      const bytesDiff = loaded - lastLoaded;
+      const speed = timeDiff > 0 ? bytesDiff / timeDiff : 0;
+
+      speeds.push(speed);
+      if (speeds.length > 5) speeds.shift();
+      const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+
+      const percent = total > 0 ? Math.round((loaded / total) * 100) : 0;
+      const eta = avgSpeed > 0 ? Math.round((total - loaded) / avgSpeed) : 0;
+
+      usePlayerStore.getState().updateDownloadStats(id, {
+        progress: loaded,
+        total,
+        speed: avgSpeed,
+        percent,
+        eta
+      });
+
+      if (timeDiff >= 0.5) {
+        lastTime = now;
+        lastLoaded = loaded;
+      }
+    }
+
+    const blob = new Blob(chunks);
+    const safeName = `${artist} - ${title}.mp3`;
     await saveCompletedFile(blob, safeName);
     usePlayerStore.getState().updateDownload(id, 'completed');
   } catch (error) {

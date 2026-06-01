@@ -63,6 +63,8 @@ const DownloadsModal = () => {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
                         <span>{download.speed ? `${(download.speed / 1024).toFixed(2)} KB/s` : ''}</span>
+                        <span>{download.percent || 0}%</span>
+                        <span>{download.eta ? `ETA ${Math.floor(download.eta / 60)}m ${download.eta % 60}s` : ''}</span>
                       </div>
                     </div>
                   )}
