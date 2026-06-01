@@ -63,6 +63,17 @@ const SearchDropdown = () => {
     };
   }, []);
 
+  // Stop preview when searchQuery becomes empty or too short
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+        setPreviewingId(null);
+      }
+    }
+  }, [searchQuery]);
+
   const handlePreview = (track) => {
     if (!track.previewUrl) return;
 

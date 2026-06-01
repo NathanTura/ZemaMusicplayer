@@ -100,6 +100,14 @@ const DesktopPlayer = () => {
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
                 style={{ background: `linear-gradient(to right, #fff ${volume * 100}%, #4d4d4d ${volume * 100}%)`, width: '80px' }}
               />
+              <button 
+                className="icon-btn" 
+                title={currentTrack ? `Add "${currentTrack.title}" to playlist` : 'No track selected'}
+                onClick={() => currentTrack && setPlaylistModalTrack(currentTrack)}
+                style={{ marginLeft: '6px' }}
+              >
+                <span className="material-symbols-rounded">playlist_add</span>
+              </button>
             </div>
           </div>
         </div>

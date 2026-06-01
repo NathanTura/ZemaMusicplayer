@@ -45,6 +45,17 @@ const SearchView = () => {
     };
   }, []);
 
+  // Stop preview when search query clears or becomes too short
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+        setPreviewingId(null);
+      }
+    }
+  }, [searchQuery]);
+
   const handlePreview = (track) => {
     if (!track.previewUrl) return;
 
