@@ -152,6 +152,32 @@ export async function importSingle(fileHandle) {
 }
 
 /**
+ * Saves a raw Blob to the Singles folder
+ */
+export async function saveBlobToSingles(blob, filename) {
+  const root = await getZemaRoot();
+  if (!root) {
+    // Fallback to browser download if no Zema root is set
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    return false;
+  }
+  
+  const singlesDir = await ensureDirectory(root, 'Singles');
+  const newFileHandle = await singlesDir.getFileHandle(filename, { create: true });
+  const writable = await newFileHandle.createWritable();
+  await writable.write(blob);
+  await writable.close();
+  return true;
+}
+
+/**
  * Recursively copies a folder (Album) to the Albums folder
  */
 export async function importAlbum(sourceDirHandle) {
@@ -186,6 +212,42 @@ export async function importAlbum(sourceDirHandle) {
 
   await copyDirContents(sourceDirHandle, targetAlbumDir);
   return targetAlbumDir;
+}
+
+/**
+ * Creates a new physical playlist folder
+ */
+export async function createPlaylistFolder(name) {
+  const root = await getZemaRoot();
+  if (!root) throw new Error("Zema root not set");
+  const playlistsDir = await ensureDirectory(root, 'Playlists');
+  await ensureDirectory(playlistsDir, name);
+  return true;
+}
+
+/**
+ * Copies an audio file into a playlist folder
+ */
+export async function addTrackToPlaylistFolder(playlistName, trackFileHandle) {
+  const root = await getZemaRoot();
+  if (!root) throw new Error("Zema root not set");
+  const playlistsDir = await ensureDirectory(root, 'Playlists');
+  const targetPlaylistDir = await ensureDirectory(playlistsDir, playlistName);
+  
+  return await copyFileToDir(trackFileHandle, targetPlaylistDir);
+}
+
+/**
+ * Removes a track from a playlist folder
+ */
+export async function removeTrackFromPlaylistFolder(playlistName, trackFileName) {
+  const root = await getZemaRoot();
+  if (!root) throw new Error("Zema root not set");
+  const playlistsDir = await ensureDirectory(root, 'Playlists');
+  const targetPlaylistDir = await ensureDirectory(playlistsDir, playlistName);
+  
+  await targetPlaylistDir.removeEntry(trackFileName);
+  return true;
 }
 
 /**

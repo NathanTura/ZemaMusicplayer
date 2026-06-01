@@ -2,15 +2,16 @@ import React from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 
 const HomeView = ({ setCurrentView }) => {
-  const { history, playlists, playTrack, setSelectedPlaylist } = usePlayerStore();
+  const { history, library, playTrack, setSelectedPlaylist } = usePlayerStore();
 
   return (
   <div className="home-view">
     <section className="music-section">
       <div className="section-header">
         <h2>Recently Played</h2>
+        <button className="see-all-btn" onClick={() => setCurrentView('Library')}>See All</button>
       </div>
-      <div className="horizontal-scroll">
+      <div className="grid-scroll-2-rows">
         {history.length === 0 ? (
           <>
             <div className="card"><div className="card-art empty-card-art"><span className="material-symbols-rounded">history</span></div><div className="card-title">No History</div><div className="card-subtitle">Play some tracks</div></div>
@@ -34,13 +35,13 @@ const HomeView = ({ setCurrentView }) => {
     <section className="music-section">
       <div className="section-header">
         <h2>Playlists</h2>
-        <button className="see-all-btn">See All</button>
+        <button className="see-all-btn" onClick={() => setCurrentView('Library')}>See All</button>
       </div>
       <div className="horizontal-scroll">
-        {playlists.length === 0 ? (
+        {library.playlists.length === 0 ? (
           <div className="card"><div className="card-art empty-card-art"><span className="material-symbols-rounded">queue_music</span></div><div className="card-title">No Playlists</div><div className="card-subtitle">Local Folder</div></div>
         ) : (
-          playlists.slice(0, 10).map((playlist, i) => (
+          library.playlists.slice(0, 10).map((playlist, i) => (
             <div className="card" key={i} onClick={() => {
               setSelectedPlaylist(playlist);
               setCurrentView('PlaylistDetails');

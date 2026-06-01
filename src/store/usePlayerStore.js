@@ -9,7 +9,6 @@ const usePlayerStore = create((set, get) => ({
   playlists: [],
   history: [],
   likes: [],
-  customPlaylists: [],
   selectedAlbum: null,
   selectedPlaylist: null,
   playlistModalTrack: null,
@@ -45,43 +44,6 @@ const usePlayerStore = create((set, get) => ({
   setSelectedPlaylist: (playlist) => set({ selectedPlaylist: playlist }),
   setPlaylistModalTrack: (track) => set({ playlistModalTrack: track }),
   
-  createPlaylist: (name) => set((state) => {
-    const newPlaylist = { id: Date.now().toString(), name, tracks: [] };
-    const newPlaylists = [...state.customPlaylists, newPlaylist];
-    setIDB('zema_custom_playlists', newPlaylists).catch(console.error);
-    return { customPlaylists: newPlaylists };
-  }),
-  
-  addToPlaylist: (playlistId, track) => set((state) => {
-    const newPlaylists = state.customPlaylists.map(p => {
-      if (p.id === playlistId) {
-        if (p.tracks.some(t => t.id === track.id)) return p;
-        return { ...p, tracks: [...p.tracks, track] };
-      }
-      return p;
-    });
-    setIDB('zema_custom_playlists', newPlaylists).catch(console.error);
-    return { customPlaylists: newPlaylists };
-  }),
-
-  removeFromPlaylist: (playlistId, trackId) => set((state) => {
-    const newPlaylists = state.customPlaylists.map(p => {
-      if (p.id === playlistId) {
-        return { ...p, tracks: p.tracks.filter(t => t.id !== trackId) };
-      }
-      return p;
-    });
-    setIDB('zema_custom_playlists', newPlaylists).catch(console.error);
-    
-    // If the currently viewed playlist was modified, update selectedPlaylist
-    let newSelectedPlaylist = state.selectedPlaylist;
-    if (newSelectedPlaylist && newSelectedPlaylist.id === playlistId) {
-      newSelectedPlaylist = newPlaylists.find(p => p.id === playlistId);
-    }
-    
-    return { customPlaylists: newPlaylists, selectedPlaylist: newSelectedPlaylist };
-  }),
-
   addToast: (message, type = 'info') => set((state) => {
     const id = Date.now().toString();
     setTimeout(() => {
@@ -152,12 +114,11 @@ const usePlayerStore = create((set, get) => ({
       
       const historyIds = await getIDB('zema_history') || [];
       const likesIds = await getIDB('zema_likes') || [];
-      const savedCustomPlaylists = await getIDB('zema_custom_playlists') || [];
       
       const hydratedHistory = historyIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
       const hydratedLikes = likesIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
       
-      set({ history: hydratedHistory, likes: hydratedLikes, customPlaylists: savedCustomPlaylists });
+      set({ history: hydratedHistory, likes: hydratedLikes });
     } catch (e) {
       console.error("Failed to rehydrate data", e);
     }
@@ -230,7 +191,7 @@ const usePlayerStore = create((set, get) => ({
   setDownloadsModalOpen: (isOpen) => set({ downloadsModalOpen: isOpen }),
   
   addDownload: (track) => set((state) => {
-    const newDownload = { ...track, id: Date.now().toString(), status: 'downloading' };
+    const newDownload = { ...track, id: Date.now().toString(), status: 'downloading', progress: 0, total: 0 };
     return { 
       activeDownloads: [newDownload, ...state.activeDownloads],
       downloadsModalOpen: true // Auto-open when starting a download
@@ -240,6 +201,12 @@ const usePlayerStore = create((set, get) => ({
   updateDownload: (id, status) => set((state) => {
     return {
       activeDownloads: state.activeDownloads.map(d => d.id === id ? { ...d, status } : d)
+    };
+  }),
+
+  updateDownloadProgress: (id, progress, total) => set((state) => {
+    return {
+      activeDownloads: state.activeDownloads.map(d => d.id === id ? { ...d, progress, total } : d)
     };
   }),
 

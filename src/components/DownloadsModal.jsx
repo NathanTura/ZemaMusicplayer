@@ -24,9 +24,43 @@ const DownloadsModal = () => {
           ) : (
             activeDownloads.map((download) => (
               <div key={download.id} className={`download-item status-${download.status}`}>
-                <div className="download-info">
-                  <div className="download-title">{download.title}</div>
-                  <div className="download-artist">{download.artist}</div>
+                <div className="download-info" style={{ flex: 1, overflow: 'hidden' }}>
+                  <div className="download-title" style={{ fontWeight: 600, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {download.title}
+                  </div>
+                  <div className="download-artist" style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                    {download.artist}
+                  </div>
+                  {download.status === 'downloading' && download.total > 0 && (
+                    <div className="download-progress-container" style={{ marginTop: '8px', width: '100%' }}>
+                      <div className="download-progress-bar" style={{ 
+                        height: '4px', 
+                        background: 'rgba(255,255,255,0.1)', 
+                        borderRadius: '2px', 
+                        overflow: 'hidden' 
+                      }}>
+                        <div 
+                          className="download-progress-fill" 
+                          style={{ 
+                            height: '100%', 
+                            background: 'var(--color-primary)', 
+                            width: `${Math.min(100, Math.round((download.progress / download.total) * 100))}%`,
+                            transition: 'width 0.2s linear'
+                          }} 
+                        />
+                      </div>
+                      <div className="download-progress-stats" style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        fontSize: '10px', 
+                        color: 'var(--color-text-muted)', 
+                        marginTop: '4px' 
+                      }}>
+                        <span>{(download.progress / (1024 * 1024)).toFixed(1)} MB / {(download.total / (1024 * 1024)).toFixed(1)} MB</span>
+                        <span>{Math.round((download.progress / download.total) * 100)}%</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="download-status">
                   {download.status === 'downloading' && (

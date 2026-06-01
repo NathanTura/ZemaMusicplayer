@@ -605,3 +605,17 @@ input[type=range].volume-slider-vertical::-webkit-slider-thumb {
   animation: spin 1s linear infinite;
 }
 
+
+/* 2-Row Horizontal Scroll for History */
+.grid-scroll-2-rows {
+  display: grid;
+  grid-template-rows: auto auto;
+  grid-auto-flow: column;
+  gap: 24px;
+  overflow-x: auto;
+  padding-bottom: 24px;
+}
+.grid-scroll-2-rows::-webkit-scrollbar {
+  display: none;
+}
+

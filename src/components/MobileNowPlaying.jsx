@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import usePlayerStore from '../store/usePlayerStore';
 
 const formatTime = (time) => {
@@ -39,35 +39,30 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
 
   const handleDragEnd = (event, info) => {
     if (info.offset.y > 100 || info.velocity.y > 500) {
-      onToggle();
-    } else {
-      controls.start({ y: 0 });
+      onToggle(); // Closes the player
     }
   };
 
-  React.useEffect(() => {
-    if (isOpen) {
-      controls.start({ y: 0 });
-    }
-  }, [isOpen, controls]);
-
   return (
-    <motion.div 
-      className={`mobile-now-playing mobile-only ${isOpen ? 'open' : ''}`}
-      drag="y"
-      dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={{ top: 0, bottom: 1 }}
-      onDragEnd={handleDragEnd}
-      animate={controls}
-      style={{ y: 0 }}
-    >
-      <header className="now-playing-header">
-         <button className="icon-btn" onClick={onToggle}><span className="material-symbols-rounded">keyboard_arrow_down</span></button>
-         <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{showQueue ? 'Queue' : 'Now Playing'}</span>
-         <button className="icon-btn" onClick={() => currentTrack && setPlaylistModalTrack(currentTrack)}>
-           <span className="material-symbols-rounded">playlist_add</span>
-         </button>
-      </header>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          className="mobile-now-playing mobile-only open"
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 1 }}
+          onDragEnd={handleDragEnd}
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        >
+          <header className="now-playing-header">
+             <button className="icon-btn" onClick={onToggle}><span className="material-symbols-rounded">keyboard_arrow_down</span></button>
+             <span style={{ fontWeight: 600, fontSize: '0.9rem', flex: 1, textAlign: 'center', marginRight: '48px' }}>
+               {showQueue ? 'Queue' : 'Now Playing'}
+             </span>
+          </header>
       
       <div className="now-playing-main" style={{ overflowY: showQueue ? 'auto' : 'visible' }}>
         {showQueue ? (
@@ -81,7 +76,6 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
                  <span className="material-symbols-rounded" style={{ fontSize: '3rem', opacity: 0.5 }}>queue_music</span>
                  <p style={{ color: 'var(--color-text)', fontWeight: 600, marginTop: '8px' }}>Your queue is empty</p>
                </div>
-            ) : (
                <div className="track-list">
                  {queue.map((track, idx) => (
                    <div 
@@ -94,6 +88,17 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
                        <div className="track-name">{track.title}</div>
                        <div className="track-artist">{track.artist}</div>
                      </div>
+                     <button 
+                       className="icon-btn" 
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         const newQueue = [...queue];
+                         newQueue.splice(idx, 1);
+                         usePlayerStore.setState({ queue: newQueue });
+                       }}
+                     >
+                       <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>close</span>
+                     </button>
                    </div>
                  ))}
                </div>
@@ -161,6 +166,8 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
          <button className="action-btn"><span className="material-symbols-rounded">equalizer</span></button>
       </footer>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

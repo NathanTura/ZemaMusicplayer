@@ -1,11 +1,9 @@
 import React from 'react';
 import usePlayerStore from '../store/usePlayerStore';
+import { removeTrackFromPlaylistFolder, loadLibrary } from '../services/FileSystem';
 
 const PlaylistView = ({ setCurrentView, playlist }) => {
-  const { playTrack, customPlaylists, removeFromPlaylist, addToast } = usePlayerStore();
-  
-  // Check if this is a custom playlist (has an ID that matches one in customPlaylists)
-  const isCustom = customPlaylists.some(p => p.id === playlist?.id);
+  const { playTrack, library, setLibrary, addToast } = usePlayerStore();
 
   if (!playlist) {
     return (
@@ -67,19 +65,33 @@ const PlaylistView = ({ setCurrentView, playlist }) => {
                 <div className="track-name">{track.title}</div>
                 <div className="track-artist">{track.artist}</div>
               </div>
-              {isCustom && (
-                <button 
-                  className="icon-btn" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeFromPlaylist(playlist.id, track.id);
+              <button 
+                className="icon-btn" 
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    // track.fileHandle.name is the actual filename on disk
+                    await removeTrackFromPlaylistFolder(playlist.name, track.fileHandle.name);
                     addToast('Removed from playlist', 'info');
-                  }}
-                  title="Remove from playlist"
-                >
-                  <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>close</span>
-                </button>
-              )}
+                    const lib = await loadLibrary();
+                    setLibrary(lib.singles, lib.albums, lib.playlists);
+                    
+                    // Update current view if it was modified
+                    const updatedPlaylist = lib.playlists.find(p => p.name === playlist.name);
+                    if (updatedPlaylist) {
+                      usePlayerStore.getState().setSelectedPlaylist(updatedPlaylist);
+                    } else {
+                      // If playlist is now empty or missing
+                      setCurrentView('Library');
+                    }
+                  } catch(err) {
+                    addToast('Failed to remove track', 'error');
+                  }
+                }}
+                title="Remove from playlist"
+              >
+                <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>close</span>
+              </button>
             </div>
           ))
         )}

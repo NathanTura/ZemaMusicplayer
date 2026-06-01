@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPlaylistFolder, loadLibrary } from '../services/FileSystem';
 import FolderBanner from '../components/FolderBanner';
 import usePlayerStore from '../store/usePlayerStore';
 
@@ -8,7 +9,7 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
   const [activeTab, setActiveTab] = useState('Singles');
   const [direction, setDirection] = useState(0);
 
-  const { singles, albums, playlists, customPlaylists, createPlaylist, history, likes, playTrack, setSelectedAlbum, setSelectedPlaylist } = usePlayerStore();
+  const { singles, albums, library, setLibrary, history, likes, playTrack, setSelectedAlbum, setSelectedPlaylist, setPlaylistModalTrack, addToast } = usePlayerStore();
 
   const handleTabChange = (tab) => {
     if (tab === activeTab) return;
@@ -51,6 +52,16 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
                 <div className="track-name">{track.title}</div>
                 <div className="track-artist">{track.artist}</div>
               </div>
+              <button 
+                className="icon-btn" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlaylistModalTrack(track);
+                }}
+                title="Add to Playlist"
+              >
+                <span className="material-symbols-rounded">playlist_add</span>
+              </button>
             </div>
           ))}
         </div>
@@ -80,17 +91,24 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
     }
 
     if (activeTab === 'Playlists') {
-      const allPlaylists = [...customPlaylists, ...playlists];
+      const allPlaylists = library.playlists;
       
       return (
         <div className="playlists-container">
           <button 
             className="btn-primary" 
             style={{ marginBottom: '24px' }}
-            onClick={() => {
+            onClick={async () => {
               const name = prompt('Enter playlist name:');
               if (name && name.trim()) {
-                createPlaylist(name.trim());
+                try {
+                  await createPlaylistFolder(name.trim());
+                  const lib = await loadLibrary();
+                  setLibrary(lib.singles, lib.albums, lib.playlists);
+                  addToast('Playlist created', 'success');
+                } catch (e) {
+                  addToast('Failed to create playlist', 'error');
+                }
               }
             }}
           >

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
+import { saveBlobToSingles } from '../services/FileSystem';
 
 const SearchView = () => {
   const { searchQuery, setSearchQuery, addToast, addDownload, updateDownload } = usePlayerStore();
@@ -93,15 +94,32 @@ const SearchView = () => {
       
       if (!response.ok) throw new Error("Download failed from backend");
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${track.artistName} - ${track.trackName}.mp3`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const contentLength = response.headers.get('content-length');
+      const total = parseInt(contentLength, 10);
+      let loaded = 0;
+      
+      const reader = response.body.getReader();
+      const chunks = [];
+      
+      while(true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        loaded += value.length;
+        if (total) {
+          usePlayerStore.getState().updateDownloadProgress(downloadId, loaded, total);
+        }
+      }
+      
+      const blob = new Blob(chunks, { type: 'audio/mpeg' });
+      const filename = `${track.artistName} - ${track.trackName}.mp3`;
+      
+      const savedToZema = await saveBlobToSingles(blob, filename);
+      if (savedToZema) {
+         import('../services/FileSystem').then(m => m.loadLibrary().then(lib => {
+            usePlayerStore.getState().setLibrary(lib.singles, lib.albums, lib.playlists);
+         }));
+      }
       
       updateDownload(downloadId, 'completed');
       addToast(`Downloaded ${track.trackName}!`, 'success');
