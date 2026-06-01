@@ -1,13 +1,16 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPlaylistFolder, loadLibrary } from '../services/FileSystem';
 import FolderBanner from '../components/FolderBanner';
+import CreatePlaylistModal from '../components/CreatePlaylistModal';
 import usePlayerStore from '../store/usePlayerStore';
 
 const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, setCurrentView }) => {
   const tabs = useMemo(() => ['Singles', 'Albums', 'Playlists', 'History', 'Likes'], []);
   const [activeTab, setActiveTab] = useState('Singles');
   const [direction, setDirection] = useState(0);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [playlistSearch, setPlaylistSearch] = useState('');
 
   const { singles, albums, library, setLibrary, history, likes, playTrack, setSelectedAlbum, setSelectedPlaylist, setPlaylistModalTrack, addToast } = usePlayerStore();
 
@@ -92,35 +95,51 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
 
     if (activeTab === 'Playlists') {
       const allPlaylists = library.playlists;
-      
+      const filteredPlaylists = playlistSearch.trim()
+        ? allPlaylists.filter(p => p.name.toLowerCase().includes(playlistSearch.toLowerCase()))
+        : allPlaylists;
+
       return (
         <div className="playlists-container">
-          <button 
-            className="btn-primary" 
-            style={{ marginBottom: '24px' }}
-            onClick={async () => {
-              const name = prompt('Enter playlist name:');
-              if (name && name.trim()) {
-                try {
-                  await createPlaylistFolder(name.trim());
-                  const lib = await loadLibrary();
-                  setLibrary(lib.singles, lib.albums, lib.playlists);
-                  addToast('Playlist created', 'success');
-                } catch (e) {
-                  addToast('Failed to create playlist', 'error');
-                }
-              }
-            }}
-          >
-            <span className="material-symbols-rounded" style={{ verticalAlign: 'middle', marginRight: '8px' }}>add</span>
-            Create Playlist
-          </button>
-          
+          <div className="playlists-toolbar">
+            <button
+              className="btn-primary"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <span className="material-symbols-rounded" style={{ verticalAlign: 'middle', marginRight: '8px' }}>add</span>
+              Create Playlist
+            </button>
+
+            {allPlaylists.length > 3 && (
+              <div className="playlist-search-field">
+                <span className="material-symbols-rounded" style={{ fontSize: '1.2rem', color: 'var(--color-text-muted)' }}>search</span>
+                <input
+                  type="text"
+                  className="playlist-name-input"
+                  placeholder="Search playlists..."
+                  value={playlistSearch}
+                  onChange={e => setPlaylistSearch(e.target.value)}
+                  autoComplete="off"
+                />
+                {playlistSearch && (
+                  <button className="icon-btn" onClick={() => setPlaylistSearch('')} style={{ padding: '4px' }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>close</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {allPlaylists.length === 0 ? (
             renderEmpty('Playlists', 'queue_music')
+          ) : filteredPlaylists.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '2.5rem', opacity: 0.4, display: 'block', marginBottom: '8px' }}>search_off</span>
+              No playlists matching "{playlistSearch}"
+            </div>
           ) : (
-            <div className="horizontal-scroll">
-              {allPlaylists.map((playlist, i) => (
+            <div className="playlist-grid">
+              {filteredPlaylists.map((playlist, i) => (
                 <div className="card" key={i} onClick={() => {
                   setSelectedPlaylist(playlist);
                   setCurrentView('PlaylistDetails');
@@ -131,7 +150,7 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
                     <div className="card-art empty-card-art"><span className="material-symbols-rounded">queue_music</span></div>
                   )}
                   <div className="card-title">{playlist.name}</div>
-                  <div className="card-subtitle">{playlist.tracks.length} tracks</div>
+                  <div className="card-subtitle">{playlist.tracks.length} {playlist.tracks.length === 1 ? 'track' : 'tracks'}</div>
                 </div>
               ))}
             </div>
@@ -201,6 +220,18 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
     </div>
   );
 
+  const handleCreatePlaylist = async (name) => {
+    try {
+      await createPlaylistFolder(name);
+      const lib = await loadLibrary();
+      setLibrary(lib.singles, lib.albums, lib.playlists);
+      addToast('Playlist created!', 'success');
+    } catch (e) {
+      addToast('Failed to create playlist', 'error');
+    }
+    setShowCreateModal(false);
+  };
+
   return (
     <div className="library-view" style={{ overflowX: 'hidden' }}>
       <FolderBanner />
@@ -240,6 +271,12 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <CreatePlaylistModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreate={handleCreatePlaylist}
+      />
     </div>
   );
 };
