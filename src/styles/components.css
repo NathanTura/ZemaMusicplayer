@@ -87,12 +87,12 @@
   .card { width: 140px; flex-shrink: 0; }
 }
 .card-art { width: 100%; aspect-ratio: 1; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 8px; }
-.card-art.round-art { border-radius: 50%; }
+.card-art.round-art { border-radius: 50%;  } 
 .empty-card-art {
   background: var(--color-surface); display: flex; align-items: center; justify-content: center;
   color: var(--color-border); border: 1px dashed var(--color-border);
 }
-.empty-card-art .material-symbols-rounded { font-size: 3rem; }
+.empty-card-art .material-symbols-rounded { font-size: 3rem;  }
 .card-title { font-size: 0.95rem; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-subtitle { font-size: 0.8rem; color: var(--color-text-muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -666,9 +666,9 @@ input[type=range].volume-slider-vertical::-webkit-slider-thumb {
 /* 2-Row Horizontal Scroll for History */
 .grid-scroll-2-rows {
   display: grid;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto;
   grid-auto-flow: column;
-  grid-auto-columns: 140px;
+  grid-auto-columns: 180px;
   gap: 24px;
   overflow-x: auto;
   padding-bottom: 24px;

@@ -51,6 +51,14 @@ const DesktopPlayer = () => {
             <button className={`icon-btn like-btn ${isLiked ? 'active' : ''}`} onClick={() => currentTrack && toggleLike(currentTrack)}>
               <span className="material-symbols-rounded">{isLiked ? 'favorite' : 'favorite_border'}</span>
             </button>
+             <button 
+                className="icon-btn" 
+                title={currentTrack ? `Add "${currentTrack.title}" to playlist` : 'No track selected'}
+                onClick={() => currentTrack && setPlaylistModalTrack(currentTrack)}
+                style={{ marginLeft: '6px' }}
+              >
+                <span className="material-symbols-rounded">playlist_add</span>
+              </button>
           </div>
         </div>
         
@@ -86,6 +94,7 @@ const DesktopPlayer = () => {
 
         <div className="player-right">
           <div className="player-options">
+            
             <div className="volume-container" style={{ display: 'flex', alignItems: 'center', width: '130px', gap: '8px' }}>
               <button className="icon-btn control-btn" onClick={() => setVolume(volume === 0 ? 1 : 0)} style={{ padding: 0 }}>
                 <span className="material-symbols-rounded">{volume === 0 ? 'volume_off' : 'volume_up'}</span>
@@ -100,14 +109,7 @@ const DesktopPlayer = () => {
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
                 style={{ background: `linear-gradient(to right, #fff ${volume * 100}%, #4d4d4d ${volume * 100}%)`, width: '80px' }}
               />
-              <button 
-                className="icon-btn" 
-                title={currentTrack ? `Add "${currentTrack.title}" to playlist` : 'No track selected'}
-                onClick={() => currentTrack && setPlaylistModalTrack(currentTrack)}
-                style={{ marginLeft: '6px' }}
-              >
-                <span className="material-symbols-rounded">playlist_add</span>
-              </button>
+             
             </div>
           </div>
         </div>
