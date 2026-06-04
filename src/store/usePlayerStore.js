@@ -17,11 +17,19 @@ const usePlayerStore = create((set, get) => ({
   toasts: [],
   activeDownloads: [],
   downloadsModalOpen: false,
+  desktopNowPlayingOpen: false,
+  libraryActiveTab: 'Singles',
   
   // Playback State
   queue: [],
   currentIndex: -1,
   currentTrack: null,
+  
+  // Preloaded track metadata
+  preloadedLyrics: null,
+  preloadedLyricsError: null,
+  preloadedArtistInfo: null,
+  preloadedArtistError: null,
   isPlaying: false,
   progress: 0,
   duration: 0,
@@ -44,6 +52,7 @@ const usePlayerStore = create((set, get) => ({
   setSelectedAlbum: (album) => set({ selectedAlbum: album }),
   setSelectedPlaylist: (playlist) => set({ selectedPlaylist: playlist }),
   setPlaylistModalTrack: (track) => set({ playlistModalTrack: track }),
+  setLibraryActiveTab: (tab) => set({ libraryActiveTab: tab }),
   
   addToast: (message, type = 'info') => set((state) => {
     const id = Date.now().toString();
@@ -190,6 +199,7 @@ const usePlayerStore = create((set, get) => ({
   setIsPlaying: (isPlaying) => set({ isPlaying }),
 
   setDownloadsModalOpen: (isOpen) => set({ downloadsModalOpen: isOpen }),
+  setDesktopNowPlayingOpen: (isOpen) => set({ desktopNowPlayingOpen: isOpen }),
   
   addDownload: (track) => set((state) => {
     const newDownload = { ...track, id: Date.now().toString(), status: 'downloading', progress: 0, total: 0 };
@@ -221,6 +231,9 @@ const usePlayerStore = create((set, get) => ({
       activeDownloads: state.activeDownloads.map(d => d.id === id ? { ...d, ...updates } : d)
     };
   }),
+
+  setPreloadedLyrics: (lyrics, error) => set({ preloadedLyrics: lyrics, preloadedLyricsError: error }),
+  setPreloadedArtistInfo: (info, error) => set({ preloadedArtistInfo: info, preloadedArtistError: error }),
 
   removeDownload: (id) => set((state) => {
     return {

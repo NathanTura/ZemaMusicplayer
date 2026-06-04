@@ -26,7 +26,8 @@ const DesktopPlayer = () => {
     repeatMode,
     toggleShuffle,
     cycleRepeat,
-    setPlaylistModalTrack
+    setPlaylistModalTrack,
+    setDesktopNowPlayingOpen
   } = usePlayerStore();
 
   const percentComplete = duration > 0 ? (progress / duration) * 100 : 0;
@@ -36,7 +37,7 @@ const DesktopPlayer = () => {
     <footer className="desktop-player desktop-only">
       <div className="player-container">
         <div className="player-left">
-          <div className="player-track-info">
+          <div className="player-track-info" onClick={() => currentTrack && setDesktopNowPlayingOpen(true)} style={{ cursor: currentTrack ? 'pointer' : 'default' }}>
             <div className={`track-art ${currentTrack?.coverArt ? '' : 'empty-track-art'}`}>
                {currentTrack?.coverArt ? (
                  <img src={currentTrack.coverArt} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
@@ -48,17 +49,19 @@ const DesktopPlayer = () => {
               <div className="track-title">{currentTrack ? currentTrack.title : 'No track selected'}</div>
               <div className="track-artist">{currentTrack ? currentTrack.artist : 'Unknown Artist'}</div>
             </div>
-            <button className={`icon-btn like-btn ${isLiked ? 'active' : ''}`} onClick={() => currentTrack && toggleLike(currentTrack)}>
-              <span className="material-symbols-rounded">{isLiked ? 'favorite' : 'favorite_border'}</span>
-            </button>
-             <button 
-                className="icon-btn" 
-                title={currentTrack ? `Add "${currentTrack.title}" to playlist` : 'No track selected'}
-                onClick={() => currentTrack && setPlaylistModalTrack(currentTrack)}
-                style={{ marginLeft: '6px' }}
-              >
-                <span className="material-symbols-rounded">playlist_add</span>
+            <div className="player-actions-left" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
+              <button className={`icon-btn like-btn ${isLiked ? 'active' : ''}`} onClick={() => currentTrack && toggleLike(currentTrack)}>
+                <span className="material-symbols-rounded">{isLiked ? 'favorite' : 'favorite_border'}</span>
               </button>
+               <button 
+                  className="icon-btn" 
+                  title={currentTrack ? `Add "${currentTrack.title}" to playlist` : 'No track selected'}
+                  onClick={() => currentTrack && setPlaylistModalTrack(currentTrack)}
+                  style={{ marginLeft: '6px' }}
+                >
+                  <span className="material-symbols-rounded">playlist_add</span>
+                </button>
+            </div>
           </div>
         </div>
         

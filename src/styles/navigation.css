@@ -2,7 +2,7 @@
 @media (min-width: 768px) {
   .top-nav {
     display: flex; justify-content: center; align-items: center;
-    height: var(--nav-height); background-color: var(--color-surface);
+    height: var(--nav-height); background-color: var(--color-bg);
     border-bottom: 1px solid var(--color-border);
   }
   .nav-container-centered {

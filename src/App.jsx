@@ -11,6 +11,7 @@ import AlbumView from './views/AlbumView';
 import PlaylistView from './views/PlaylistView';
 import Sidebar from './components/Sidebar';
 import DesktopPlayer from './components/DesktopPlayer';
+import DesktopNowPlaying from './components/DesktopNowPlaying';
 import MobileMiniPlayer from './components/MobileMiniPlayer';
 import MobileBottomNav from './components/MobileBottomNav';
 import MobileNowPlaying from './components/MobileNowPlaying';
@@ -26,7 +27,6 @@ function App() {
   const [currentView, setCurrentView] = useState('Home');
   const [mobileNowPlayingOpen, setMobileNowPlayingOpen] = useState(false);
   const [localFiles, setLocalFiles] = useState([]);
-  const [sidebarWidth, setSidebarWidth] = useState(300);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
   const { 
@@ -52,8 +52,6 @@ function App() {
     })
   };
   const fileInputRef = useRef(null);
-  const resizerRef = useRef(null);
-  const isResizing = useRef(false);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -94,42 +92,25 @@ function App() {
   };
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isResizing.current) return;
-      let newWidth = window.innerWidth - e.clientX;
-      if (newWidth < 200) newWidth = 200;
-      if (newWidth > 600) newWidth = 600;
-      setSidebarWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      if (isResizing.current) {
-        isResizing.current = false;
-        if (resizerRef.current) resizerRef.current.classList.remove('is-resizing');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
 
+    const handleKeyDown = (e) => {
+      // Ignore if typing in an input or textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.code === 'Space') {
+        e.preventDefault(); // Prevent page scroll
+        usePlayerStore.getState().togglePlay();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
-
-  const handleResizerMouseDown = () => {
-    isResizing.current = true;
-    if (resizerRef.current) resizerRef.current.classList.add('is-resizing');
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  };
 
   const handleSetView = (view) => {
     if (view === currentView) return;
@@ -190,13 +171,10 @@ function App() {
               )}
             </main>
 
-            <Sidebar 
-              sidebarWidth={sidebarWidth}
-              resizerRef={resizerRef}
-              onResizerMouseDown={handleResizerMouseDown}
-            />
+            <Sidebar />
           </div>
 
+          <DesktopNowPlaying />
           <DesktopPlayer />
           
           <MobileMiniPlayer onToggle={toggleMobileNowPlaying} />

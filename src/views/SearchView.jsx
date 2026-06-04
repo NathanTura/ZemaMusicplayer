@@ -3,18 +3,28 @@ import usePlayerStore from '../store/usePlayerStore';
 import { saveBlobToSingles } from '../services/FileSystem';
 
 const SearchView = () => {
-  const { searchQuery, setSearchQuery, addToast, addDownload, updateDownload } = usePlayerStore();
-  const [results, setResults] = useState([]);
+  const { searchQuery, setSearchQuery, addToast, addDownload, updateDownload, singles, playTrack } = usePlayerStore();
+  const [onlineResults, setOnlineResults] = useState([]);
+  const [localResults, setLocalResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [previewingId, setPreviewingId] = useState(null);
   const audioRef = useRef(null);
 
-  // Debounced iTunes search
+  // Debounced iTunes search & Local filtering
   useEffect(() => {
     if (!searchQuery || searchQuery.trim().length < 2) {
-      setResults([]);
+      setOnlineResults([]);
+      setLocalResults([]);
       return;
     }
+
+    // Filter Local Library
+    const lowerQuery = searchQuery.toLowerCase();
+    const filteredLocal = singles.filter(track => 
+      track.title?.toLowerCase().includes(lowerQuery) || 
+      track.artist?.toLowerCase().includes(lowerQuery)
+    ).slice(0, 10);
+    setLocalResults(filteredLocal);
 
     const timer = setTimeout(async () => {
       setLoading(true);
@@ -30,7 +40,7 @@ const SearchView = () => {
             ...track,
             previewUrl: track.previewUrl || null
           }));
-          setResults(resultsWithPreview);
+          setOnlineResults(resultsWithPreview);
         }
       } catch (e) {
         console.warn('Search error:', e);
@@ -133,17 +143,51 @@ const SearchView = () => {
         </div>
       )}
 
-      {!loading && results.length === 0 && (
+      {!loading && onlineResults.length === 0 && localResults.length === 0 && (
         <div className="search-empty-state">
           <span className="material-symbols-rounded" style={{ fontSize: '48px', color: 'var(--color-text-muted)' }}>search_off</span>
           <p style={{ color: 'var(--color-text-muted)', marginTop: '12px' }}>No results for "{searchQuery}"</p>
         </div>
       )}
 
-      {!loading && results.length > 0 && (
+      {(localResults.length > 0 || onlineResults.length > 0) && (
         <div className="mobile-search-results">
-          {results.map((track) => (
-            <div key={track.trackId} className="search-result-item">
+
+          {localResults.length > 0 && (
+            <div className="search-section">
+              <div className="search-section-header">Local Library</div>
+              {localResults.map((track) => (
+                <div key={track.id} className="search-result-item">
+                  <img
+                    src={track.coverArt || ''}
+                    alt={track.title}
+                    className="search-result-art"
+                    style={{ background: track.coverArt ? 'transparent' : 'rgba(255,255,255,0.05)' }}
+                  />
+                  <div className="search-result-info">
+                    <span className="search-result-title">{track.title}</span>
+                    <span className="search-result-artist">{track.artist}</span>
+                  </div>
+                  <button
+                    className="search-download-btn"
+                    onClick={() => {
+                      playTrack(track, singles);
+                      setSearchQuery('');
+                    }}
+                    style={{ color: 'var(--color-primary)' }}
+                  >
+                    <span className="material-symbols-rounded">play_arrow</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {onlineResults.length > 0 && (
+            <div className="search-section">
+              <div className="search-section-header" style={{ opacity: loading ? 0.5 : 1 }}>Online Results</div>
+              {!loading && onlineResults.map((track) => (
+                <div key={track.trackId} className="search-result-item">
               <button
                 className="search-preview-btn"
                 onClick={() => handlePreview(track)}
@@ -171,8 +215,10 @@ const SearchView = () => {
               >
                 <span className="material-symbols-rounded">download</span>
               </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

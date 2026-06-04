@@ -2,14 +2,24 @@ import React from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 
 const HomeView = ({ setCurrentView }) => {
-  const { history, library, playTrack, setSelectedPlaylist } = usePlayerStore();
+  const { history, library, playTrack, setSelectedPlaylist, setLibraryActiveTab } = usePlayerStore();
+
+  const handleSeeAllHistory = () => {
+    setLibraryActiveTab('History');
+    setCurrentView('Library');
+  };
+
+  const handleSeeAllPlaylists = () => {
+    setLibraryActiveTab('Playlists');
+    setCurrentView('Library');
+  };
 
   return (
   <div className="home-view">
     <section className="music-section">
       <div className="section-header">
         <h2>Recently Played</h2>
-        <button className="see-all-btn" onClick={() => setCurrentView('Library')}>See All</button>
+        <button className="see-all-btn" onClick={handleSeeAllHistory}>See All</button>
       </div>
       <div className="grid-scroll-2-rows">
         {history.length === 0 ? (
@@ -35,7 +45,7 @@ const HomeView = ({ setCurrentView }) => {
     <section className="music-section">
       <div className="section-header">
         <h2>Playlists</h2>
-        <button className="see-all-btn" onClick={() => setCurrentView('Library')}>See All</button>
+        <button className="see-all-btn" onClick={handleSeeAllPlaylists}>See All</button>
       </div>
       <div className="horizontal-scroll">
         {library.playlists.length === 0 ? (

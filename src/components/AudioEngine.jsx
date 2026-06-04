@@ -18,7 +18,9 @@ function AudioEngine() {
     nextTrack,
     volume,
     eqEnabled,
-    eqGains
+    eqGains,
+    setPreloadedLyrics,
+    setPreloadedArtistInfo
   } = usePlayerStore();
 
   useEffect(() => {
@@ -91,7 +93,67 @@ function AudioEngine() {
       }
     };
 
+    const preloadMetadata = async () => {
+      if (!currentTrack) return;
+      
+      setPreloadedLyrics(null, null);
+      setPreloadedArtistInfo(null, null);
+
+      const title = encodeURIComponent(currentTrack.title);
+      const artist = encodeURIComponent(currentTrack.artist);
+
+      // Preload Lyrics
+      fetch(`https://lrclib.net/api/get?track_name=${title}&artist_name=${artist}`)
+        .then(res => res.ok ? res.json() : Promise.reject('Not found'))
+        .then(data => {
+          if (data.syncedLyrics) {
+            setPreloadedLyrics(data.syncedLyrics, null);
+          } else if (data.plainLyrics) {
+            setPreloadedLyrics(data.plainLyrics, 'plain');
+          } else {
+            setPreloadedLyrics(null, 'No lyrics available');
+          }
+        })
+        .catch(() => setPreloadedLyrics(null, 'No synchronized lyrics found for this track.'));
+
+      // Preload Artist Info
+      fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${artist}`)
+        .then(res => res.ok ? res.json() : Promise.reject('Not found'))
+        .then(data => {
+          if (data.type !== 'disambiguation' && data.extract) {
+            setPreloadedArtistInfo({
+              name: data.title,
+              description: data.extract,
+              image: data.thumbnail?.source || null,
+              url: data.content_urls?.desktop?.page || null
+            }, null);
+          } else {
+            throw new Error('Disambiguation');
+          }
+        })
+        .catch(() => {
+          // Fallback to iTunes
+          fetch(`https://itunes.apple.com/search?term=${artist}&entity=musicArtist&limit=1`)
+            .then(res => res.ok ? res.json() : Promise.reject('Not found'))
+            .then(data => {
+               if (data.results && data.results.length > 0) {
+                 const artistInfo = data.results[0];
+                 setPreloadedArtistInfo({
+                   name: artistInfo.artistName,
+                   description: `Genre: ${artistInfo.primaryGenreName}`,
+                   image: null,
+                   url: artistInfo.artistLinkUrl
+                 }, null);
+               } else {
+                 setPreloadedArtistInfo(null, 'No online information found for this artist.');
+               }
+            })
+            .catch(() => setPreloadedArtistInfo(null, 'No online information found for this artist.'));
+        });
+    };
+
     loadAndPlayTrack();
+    preloadMetadata();
 
     return () => {
       if (objectUrlRef.current) {

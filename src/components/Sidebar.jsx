@@ -1,21 +1,13 @@
 import React from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 
-const Sidebar = ({ sidebarWidth, resizerRef, onResizerMouseDown }) => {
-  const { queue, currentIndex, playTrack } = usePlayerStore();
+const Sidebar = () => {
+  const { queue, currentIndex, playTrack, desktopNowPlayingOpen, currentTrack, isPlaying } = usePlayerStore();
 
   return (
     <>
-    {/* Sidebar Resizer */}
-    <div 
-      id="sidebar-resizer" 
-      className="desktop-only" 
-      ref={resizerRef}
-      onMouseDown={onResizerMouseDown}
-    ></div>
-
     {/* Right Sidebar (Desktop Only) */}
-    <aside className="sidebar desktop-only" style={{ width: sidebarWidth }}>
+    <aside className={`sidebar desktop-only ${desktopNowPlayingOpen ? 'hidden-right' : ''}`}>
       <div className="sidebar-header">
         <h3>UP NEXT</h3>
         <button className="icon-btn" onClick={() => usePlayerStore.setState({ queue: [] })}><span className="material-symbols-rounded">delete_sweep</span></button>
@@ -34,10 +26,22 @@ const Sidebar = ({ sidebarWidth, resizerRef, onResizerMouseDown }) => {
                className={`track-item ${idx === currentIndex ? 'playing' : ''}`}
                onDoubleClick={() => playTrack(track, queue)}
              >
-               <div className="track-number">{idx === currentIndex ? <span className="material-symbols-rounded" style={{fontSize: '1rem'}}>volume_up</span> : idx + 1}</div>
+               <div className="track-number queue-art" style={{ position: 'relative' }}>
+                 {idx === currentIndex && isPlaying ? (
+                  <div className="playing-animation">
+                    <div className="bar"></div>
+                    <div className="bar"></div>
+                    <div className="bar"></div>
+                  </div>
+                 ) : track.coverArt ? (
+                   <img src={track.coverArt} alt="Cover" />
+                 ) : (
+                   <span className="material-symbols-rounded" style={{fontSize: '1rem'}}>music_note</span>
+                 )}
+               </div>
                <div className="track-info">
-                 <div className="track-title">{track.title}</div>
-                 <div className="track-artist">{track.artist}</div>
+                 <div className="track-title" style={{ fontWeight: '600', color: idx === currentIndex ? 'var(--color-primary)' : '#fff' }}>{track.title}</div>
+                 <div className="track-artist" style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{track.artist} • {track.album || 'Local Audio'}</div>
                </div>
              </div>
            ))

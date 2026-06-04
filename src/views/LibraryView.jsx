@@ -7,19 +7,18 @@ import usePlayerStore from '../store/usePlayerStore';
 
 const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, setCurrentView }) => {
   const tabs = useMemo(() => ['Singles', 'Albums', 'Playlists', 'History', 'Likes'], []);
-  const [activeTab, setActiveTab] = useState('Singles');
   const [direction, setDirection] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [playlistSearch, setPlaylistSearch] = useState('');
-
-  const { singles, albums, library, setLibrary, history, likes, playTrack, setSelectedAlbum, setSelectedPlaylist, setPlaylistModalTrack, addToast } = usePlayerStore();
+  
+  const { singles, albums, library, setLibrary, history, likes, playTrack, setSelectedAlbum, setSelectedPlaylist, setPlaylistModalTrack, addToast, libraryActiveTab, setLibraryActiveTab, currentTrack, isPlaying } = usePlayerStore();
 
   const handleTabChange = (tab) => {
-    if (tab === activeTab) return;
+    if (tab === libraryActiveTab) return;
     const currentIndex = tabs.indexOf(tab);
-    const prevIndex = tabs.indexOf(activeTab);
+    const prevIndex = tabs.indexOf(libraryActiveTab);
     setDirection(currentIndex > prevIndex ? 1 : -1);
-    setActiveTab(tab);
+    setLibraryActiveTab(tab);
   };
 
   const tabVariants = {
@@ -38,20 +37,28 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
   };
 
   const renderContent = () => {
-    if (activeTab === 'Singles') {
+    if (libraryActiveTab === 'Singles') {
       if (singles.length === 0) return renderEmpty('Singles', 'music_note');
       return (
         <div className="track-list">
-          {singles.map((track, i) => (
-            <div className="track-item" key={i} onClick={() => playTrack(track, singles)}>
-              <div className="track-icon">
-                {track.coverArt ? (
-                  <img src={track.coverArt} alt="" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px'}} />
-                ) : (
-                  <span className="material-symbols-rounded">music_note</span>
-                )}
-              </div>
-              <div className="track-info">
+          {singles.map((track, i) => {
+            const isThisTrackPlaying = currentTrack?.id === track.id;
+            return (
+              <div className={`track-item ${isThisTrackPlaying ? 'playing' : ''}`} key={i} onClick={() => playTrack(track, singles)}>
+                <div className="track-icon queue-art" style={{ position: 'relative' }}>
+                  {isThisTrackPlaying && isPlaying ? (
+                    <div className="playing-animation">
+                      <div className="bar"></div>
+                      <div className="bar"></div>
+                      <div className="bar"></div>
+                    </div>
+                  ) : track.coverArt ? (
+                    <img src={track.coverArt} alt="" />
+                  ) : (
+                    <span className="material-symbols-rounded">music_note</span>
+                  )}
+                </div>
+                <div className="track-info">
                 <div className="track-name">{track.title}</div>
                 <div className="track-artist">{track.artist}</div>
               </div>
@@ -66,12 +73,13 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
                 <span className="material-symbols-rounded">playlist_add</span>
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
     
-    if (activeTab === 'Albums') {
+    if (libraryActiveTab === 'Albums') {
       if (albums.length === 0) return renderEmpty('Albums', 'album');
       return (
         <div className="horizontal-scroll">
@@ -93,7 +101,7 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
       );
     }
 
-    if (activeTab === 'Playlists') {
+    if (libraryActiveTab === 'Playlists') {
       const allPlaylists = library.playlists;
       const filteredPlaylists = playlistSearch.trim()
         ? allPlaylists.filter(p => p.name.toLowerCase().includes(playlistSearch.toLowerCase()))
@@ -159,15 +167,23 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
       );
     }
 
-    if (activeTab === 'History') {
+    if (libraryActiveTab === 'History') {
       if (history.length === 0) return renderEmpty('History', 'history');
       return (
         <div className="track-list">
-          {history.map((track, i) => (
-            <div className="track-item" key={i} onClick={() => playTrack(track, history)}>
-              <div className="track-icon">
-                {track.coverArt ? (
-                  <img src={track.coverArt} alt="" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px'}} />
+          {history.map((track, i) => {
+            const isThisTrackPlaying = currentTrack?.id === track.id;
+            return (
+            <div className={`track-item ${isThisTrackPlaying ? 'playing' : ''}`} key={i} onClick={() => playTrack(track, history)}>
+              <div className="track-icon queue-art" style={{ position: 'relative' }}>
+                {isThisTrackPlaying && isPlaying ? (
+                  <div className="playing-animation">
+                    <div className="bar"></div>
+                    <div className="bar"></div>
+                    <div className="bar"></div>
+                  </div>
+                ) : track.coverArt ? (
+                  <img src={track.coverArt} alt="" />
                 ) : (
                   <span className="material-symbols-rounded">history</span>
                 )}
@@ -177,20 +193,29 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
                 <div className="track-artist">{track.artist}</div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
 
-    if (activeTab === 'Likes') {
+    if (libraryActiveTab === 'Likes') {
       if (likes.length === 0) return renderEmpty('Likes', 'favorite');
       return (
         <div className="track-list">
-          {likes.map((track, i) => (
-            <div className="track-item" key={i} onClick={() => playTrack(track, likes)}>
-              <div className="track-icon">
-                {track.coverArt ? (
-                  <img src={track.coverArt} alt="" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px'}} />
+          {likes.map((track, i) => {
+            const isThisTrackPlaying = currentTrack?.id === track.id;
+            return (
+            <div className={`track-item ${isThisTrackPlaying ? 'playing' : ''}`} key={i} onClick={() => playTrack(track, likes)}>
+              <div className="track-icon queue-art" style={{ position: 'relative' }}>
+                {isThisTrackPlaying && isPlaying ? (
+                  <div className="playing-animation">
+                    <div className="bar"></div>
+                    <div className="bar"></div>
+                    <div className="bar"></div>
+                  </div>
+                ) : track.coverArt ? (
+                  <img src={track.coverArt} alt="" />
                 ) : (
                   <span className="material-symbols-rounded">favorite</span>
                 )}
@@ -200,12 +225,13 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
                 <div className="track-artist">{track.artist}</div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
 
-    return renderEmpty(activeTab, activeTab === 'Playlists' ? 'queue_music' : 'help');
+    return renderEmpty(libraryActiveTab, libraryActiveTab === 'Playlists' ? 'queue_music' : 'help');
   };
 
   const renderEmpty = (name, icon) => (
@@ -240,7 +266,7 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
         {tabs.map(tab => (
           <button 
             key={tab}
-            className={`subnav-btn ${activeTab === tab ? 'active' : ''}`}
+            className={`subnav-btn ${libraryActiveTab === tab ? 'active' : ''}`}
             onClick={() => handleTabChange(tab)}
           >
             {tab}
@@ -251,7 +277,7 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
       <div className="library-content" style={{ position: 'relative' }}>
         <AnimatePresence mode="popLayout" custom={direction}>
           <motion.div
-            key={activeTab}
+            key={libraryActiveTab}
             custom={direction}
             variants={tabVariants}
             initial="initial"
@@ -264,7 +290,7 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
           >
             <section className="music-section">
               <div className="section-header">
-                <h2>{activeTab}</h2>
+                <h2>{libraryActiveTab}</h2>
               </div>
               {renderContent()}
             </section>

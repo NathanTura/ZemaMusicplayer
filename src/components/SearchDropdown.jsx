@@ -3,20 +3,30 @@ import usePlayerStore from '../store/usePlayerStore';
 import { saveBlobToSingles } from '../services/FileSystem';
 
 const SearchDropdown = () => {
-  const { searchQuery, setSearchQuery, addToast, addDownload, updateDownload } = usePlayerStore();
-  const [results, setResults] = useState([]);
+  const { searchQuery, setSearchQuery, addToast, addDownload, updateDownload, singles, playTrack } = usePlayerStore();
+  const [onlineResults, setOnlineResults] = useState([]);
+  const [localResults, setLocalResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [previewAudio, setPreviewAudio] = useState(null);
   const [previewingId, setPreviewingId] = useState(null);
   const audioRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // Debounced iTunes search
+  // Debounced iTunes search & Local filtering
   useEffect(() => {
     if (!searchQuery || searchQuery.trim().length < 2) {
-      setResults([]);
+      setOnlineResults([]);
+      setLocalResults([]);
       return;
     }
+
+    // Filter Local Library
+    const lowerQuery = searchQuery.toLowerCase();
+    const filteredLocal = singles.filter(track => 
+      track.title?.toLowerCase().includes(lowerQuery) || 
+      track.artist?.toLowerCase().includes(lowerQuery)
+    ).slice(0, 5); // Limit local to 5 results for dropdown
+    setLocalResults(filteredLocal);
 
     const timer = setTimeout(async () => {
       setLoading(true);
@@ -34,7 +44,7 @@ const SearchDropdown = () => {
             ...track,
             previewUrl: track.previewUrl || null
           }));
-          setResults(resultsWithPreview);
+          setOnlineResults(resultsWithPreview.slice(0, 10)); // Limit online results too
         }
       } catch (e) {
         console.warn('Search error:', e);
@@ -143,17 +153,52 @@ const SearchDropdown = () => {
         </div>
       )}
 
-      {!loading && results.length === 0 && searchQuery.length >= 2 && (
+      {!loading && onlineResults.length === 0 && localResults.length === 0 && searchQuery.length >= 2 && (
         <div className="search-dropdown-empty">
           <span className="material-symbols-rounded">search_off</span>
           <span>No results found</span>
         </div>
       )}
 
-      {!loading && results.length > 0 && (
+      {(localResults.length > 0 || onlineResults.length > 0) && (
         <div className="search-dropdown-results">
-          {results.map((track) => (
-            <div key={track.trackId} className="search-result-item">
+          
+          {localResults.length > 0 && (
+            <div className="search-section">
+              <div className="search-section-header">Local Library</div>
+              {localResults.map((track) => (
+                <div key={track.id} className="search-result-item">
+                  <img
+                    src={track.coverArt || ''}
+                    alt={track.title}
+                    className="search-result-art"
+                    style={{ background: track.coverArt ? 'transparent' : 'rgba(255,255,255,0.05)' }}
+                  />
+                  <div className="search-result-info">
+                    <span className="search-result-title">{track.title}</span>
+                    <span className="search-result-artist">{track.artist}</span>
+                  </div>
+                  <button
+                    className="search-download-btn"
+                    onClick={() => {
+                      playTrack(track, singles);
+                      setSearchQuery('');
+                    }}
+                    title="Play Local Track"
+                    style={{ color: 'var(--color-primary)' }}
+                  >
+                    <span className="material-symbols-rounded">play_arrow</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {onlineResults.length > 0 && (
+            <div className="search-section">
+              <div className="search-section-header" style={{ opacity: loading ? 0.5 : 1 }}>Online Results</div>
+              {!loading && onlineResults.map((track) => (
+                <div key={track.trackId} className="search-result-item">
               <button
                 className="search-preview-btn"
                 onClick={() => handlePreview(track)}
@@ -183,8 +228,10 @@ const SearchDropdown = () => {
               >
                 <span className="material-symbols-rounded">download</span>
               </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
