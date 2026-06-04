@@ -103,3 +103,9 @@
   .now-playing-footer { display: flex; justify-content: space-around; padding: 24px; border-top: 1px solid var(--color-border); }
   .action-btn { background: none; border: none; color: var(--color-text-muted); cursor: pointer; }
 }
+
+/* Global: like button active state must work on ALL screen sizes */
+.like-btn { transition: color 0.2s, transform 0.2s; }
+.like-btn:hover { color: var(--color-primary); transform: scale(1.1); }
+.like-btn.active { color: var(--color-primary) !important; }
+.like-btn.active span { color: var(--color-primary) !important; }
