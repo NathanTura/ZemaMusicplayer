@@ -23,7 +23,7 @@ const SearchDropdown = () => {
       try {
         const controller = new AbortController();
         const res = await fetch(
-          `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&media=music&limit=6`,
+          `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&media=music&limit=none`,
           { signal: controller.signal }
         );
         const data = await res.json();
