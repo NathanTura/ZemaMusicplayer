@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
-import { saveBlobToSingles } from '../services/FileSystem';
 
 const SearchView = () => {
-  const { searchQuery, setSearchQuery, addToast, addDownload, updateDownload, singles, playTrack } = usePlayerStore();
+  const { searchQuery, setSearchQuery, addToast, singles, playTrack } = usePlayerStore();
   const [onlineResults, setOnlineResults] = useState([]);
   const [localResults, setLocalResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [previewingId, setPreviewingId] = useState(null);
   const audioRef = useRef(null);
 
-  // Debounced iTunes search & Local filtering
+  // Debounced iTunes search & local filtering
   useEffect(() => {
     if (!searchQuery || searchQuery.trim().length < 2) {
       setOnlineResults([]);
@@ -18,10 +17,9 @@ const SearchView = () => {
       return;
     }
 
-    // Filter Local Library
     const lowerQuery = searchQuery.toLowerCase();
-    const filteredLocal = singles.filter(track => 
-      track.title?.toLowerCase().includes(lowerQuery) || 
+    const filteredLocal = singles.filter(track =>
+      track.title?.toLowerCase().includes(lowerQuery) ||
       track.artist?.toLowerCase().includes(lowerQuery)
     ).slice(0, 10);
     setLocalResults(filteredLocal);
@@ -34,13 +32,7 @@ const SearchView = () => {
         );
         const data = await res.json();
         if (data.results) {
-          console.log('iTunes search results:', data.results);
-          // Filter results and verify previewUrl exists
-          const resultsWithPreview = data.results.map(track => ({
-            ...track,
-            previewUrl: track.previewUrl || null
-          }));
-          setOnlineResults(resultsWithPreview);
+          setOnlineResults(data.results.map(t => ({ ...t, previewUrl: t.previewUrl || null })));
         }
       } catch (e) {
         console.warn('Search error:', e);
@@ -49,79 +41,63 @@ const SearchView = () => {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, singles]);
 
-  // Cleanup audio on unmount
+  // Cleanup preview audio on unmount
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     };
   }, []);
 
-  // Stop preview when search query clears or becomes too short
+  // Stop preview when query clears
   useEffect(() => {
     if (!searchQuery || searchQuery.trim().length < 2) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-        setPreviewingId(null);
-      }
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; setPreviewingId(null); }
     }
   }, [searchQuery]);
 
-  const handlePreview = (track) => {
-    console.log('handlePreview called:', track.trackName, 'previewUrl:', track.previewUrl);
-    
-    if (!track.previewUrl) {
-      console.warn('No preview URL available for:', track.trackName);
-      return;
-    }
+  // ── Handlers ──
+
+  // Use pointerDown so the action fires BEFORE the input loses focus on both
+  // touch (iOS/Android) and desktop-resized-to-mobile (Chrome DevTools).
+  const handleLocalPlay = (e, track) => {
+    e.preventDefault(); // prevent input blur
+    playTrack(track, singles);
+    setSearchQuery('');
+  };
+
+  const handlePreviewPointer = (e, track) => {
+    e.preventDefault();
+    if (!track.previewUrl) return;
 
     if (previewingId === track.trackId) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       setPreviewingId(null);
       return;
     }
 
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    if (audioRef.current) audioRef.current.pause();
     const audio = new Audio(track.previewUrl);
     audio.volume = 0.5;
-    audio.play()
-      .then(() => {
-        console.log('Preview playing:', track.trackName);
-      })
-      .catch(err => {
-        console.error('Preview playback error:', err);
-        addToast(`Preview error: ${err.message}`, 'error');
-      });
-    audio.onended = () => {
-      console.log('Preview ended:', track.trackName);
-      setPreviewingId(null);
-    };
+    audio.play().catch(err => addToast(`Preview error: ${err.message}`, 'error'));
+    audio.onended = () => setPreviewingId(null);
     audioRef.current = audio;
     setPreviewingId(track.trackId);
   };
 
-  const handleDownload = async (track) => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+  const handleDownload = (e, track) => {
+    e.preventDefault();
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
     addToast(`Downloading ${track.trackName}...`, 'loading');
-    setSearchQuery(''); // Clear search to return to previous view
-    try {
-      await import('../services/downloadManager').then(m => m.startDownload({ title: track.trackName, artist: track.artistName }, backendUrl));
-      addToast(`Downloaded ${track.trackName}!`, 'success');
-    } catch (e) {
-      console.error(e);
-      addToast(`Failed: ${e.message}`, 'error');
-    }
+    setSearchQuery('');
+    import('../services/downloadManager')
+      .then(m => m.startDownload({ title: track.trackName, artist: track.artistName }, backendUrl))
+      .then(() => addToast(`Downloaded ${track.trackName}!`, 'success'))
+      .catch(e => addToast(`Failed: ${e.message}`, 'error'));
   };
+
+  // ── Render ──
 
   if (!searchQuery || searchQuery.trim().length < 2) {
     return (
@@ -153,6 +129,7 @@ const SearchView = () => {
       {(localResults.length > 0 || onlineResults.length > 0) && (
         <div className="mobile-search-results">
 
+          {/* Local Library results */}
           {localResults.length > 0 && (
             <div className="search-section">
               <div className="search-section-header">Local Library</div>
@@ -160,11 +137,8 @@ const SearchView = () => {
                 <div
                   key={track.id}
                   className="search-result-item"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    playTrack(track, singles);
-                    setSearchQuery('');
-                  }}
+                  // onPointerDown fires before blur on BOTH touch and mouse
+                  onPointerDown={(e) => handleLocalPlay(e, track)}
                 >
                   <img
                     src={track.coverArt || ''}
@@ -176,25 +150,25 @@ const SearchView = () => {
                     <span className="search-result-title">{track.title}</span>
                     <span className="search-result-artist">{track.artist}</span>
                   </div>
-                  <span className="material-symbols-rounded" style={{ color: 'var(--color-primary)', fontSize: '1.5rem' }}>play_arrow</span>
+                  <span className="material-symbols-rounded" style={{ color: 'var(--color-primary)', fontSize: '1.5rem', flexShrink: 0 }}>
+                    play_arrow
+                  </span>
                 </div>
               ))}
             </div>
           )}
 
+          {/* Online results */}
           {onlineResults.length > 0 && (
             <div className="search-section">
               <div className="search-section-header" style={{ opacity: loading ? 0.5 : 1 }}>Online Results</div>
               {!loading && onlineResults.map((track) => (
-                <div
-                  key={track.trackId}
-                  className="search-result-item"
-                  onMouseDown={(e) => e.preventDefault()}
-                >
+                <div key={track.trackId} className="search-result-item">
+
+                  {/* Preview toggle */}
                   <button
                     className="search-preview-btn"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => handlePreview(track)}
+                    onPointerDown={(e) => handlePreviewPointer(e, track)}
                     disabled={!track.previewUrl}
                   >
                     <span className="material-symbols-rounded">
@@ -213,10 +187,10 @@ const SearchView = () => {
                     <span className="search-result-artist">{track.artistName}</span>
                   </div>
 
+                  {/* Download */}
                   <button
                     className="search-download-btn"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => handleDownload(track)}
+                    onPointerDown={(e) => handleDownload(e, track)}
                   >
                     <span className="material-symbols-rounded">download</span>
                   </button>
