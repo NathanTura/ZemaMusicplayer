@@ -195,13 +195,13 @@ const usePlayerStore = create((set, get) => ({
     const newDownload = { ...track, id: Date.now().toString(), status: 'downloading', progress: 0, total: 0 };
     return { 
       activeDownloads: [newDownload, ...state.activeDownloads],
-      downloadsModalOpen: true // Auto-open when starting a download
+      downloadsModalOpen: false // Auto-open when starting a download
     };
   }),
   // Add a download object (caller provides id)
   addDownloadObject: (downloadObj) => set((state) => ({
     activeDownloads: [downloadObj, ...state.activeDownloads],
-    downloadsModalOpen: true
+    downloadsModalOpen: false
   })),
 
   updateDownload: (id, status) => set((state) => {
