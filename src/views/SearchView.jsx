@@ -157,7 +157,15 @@ const SearchView = () => {
             <div className="search-section">
               <div className="search-section-header">Local Library</div>
               {localResults.map((track) => (
-                <div key={track.id} className="search-result-item">
+                <div
+                  key={track.id}
+                  className="search-result-item"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    playTrack(track, singles);
+                    setSearchQuery('');
+                  }}
+                >
                   <img
                     src={track.coverArt || ''}
                     alt={track.title}
@@ -168,16 +176,7 @@ const SearchView = () => {
                     <span className="search-result-title">{track.title}</span>
                     <span className="search-result-artist">{track.artist}</span>
                   </div>
-                  <button
-                    className="search-download-btn"
-                    onClick={() => {
-                      playTrack(track, singles);
-                      setSearchQuery('');
-                    }}
-                    style={{ color: 'var(--color-primary)' }}
-                  >
-                    <span className="material-symbols-rounded">play_arrow</span>
-                  </button>
+                  <span className="material-symbols-rounded" style={{ color: 'var(--color-primary)', fontSize: '1.5rem' }}>play_arrow</span>
                 </div>
               ))}
             </div>
@@ -187,34 +186,40 @@ const SearchView = () => {
             <div className="search-section">
               <div className="search-section-header" style={{ opacity: loading ? 0.5 : 1 }}>Online Results</div>
               {!loading && onlineResults.map((track) => (
-                <div key={track.trackId} className="search-result-item">
-              <button
-                className="search-preview-btn"
-                onClick={() => handlePreview(track)}
-                disabled={!track.previewUrl}
-              >
-                <span className="material-symbols-rounded">
-                  {previewingId === track.trackId ? 'stop_circle' : 'play_circle'}
-                </span>
-              </button>
+                <div
+                  key={track.trackId}
+                  className="search-result-item"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <button
+                    className="search-preview-btn"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handlePreview(track)}
+                    disabled={!track.previewUrl}
+                  >
+                    <span className="material-symbols-rounded">
+                      {previewingId === track.trackId ? 'stop_circle' : 'play_circle'}
+                    </span>
+                  </button>
 
-              <img
-                src={track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '200x200bb') : ''}
-                alt={track.trackName}
-                className="search-result-art"
-              />
+                  <img
+                    src={track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '200x200bb') : ''}
+                    alt={track.trackName}
+                    className="search-result-art"
+                  />
 
-              <div className="search-result-info">
-                <span className="search-result-title">{track.trackName}</span>
-                <span className="search-result-artist">{track.artistName}</span>
-              </div>
+                  <div className="search-result-info">
+                    <span className="search-result-title">{track.trackName}</span>
+                    <span className="search-result-artist">{track.artistName}</span>
+                  </div>
 
-              <button
-                className="search-download-btn"
-                onClick={() => handleDownload(track)}
-              >
-                <span className="material-symbols-rounded">download</span>
-              </button>
+                  <button
+                    className="search-download-btn"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleDownload(track)}
+                  >
+                    <span className="material-symbols-rounded">download</span>
+                  </button>
                 </div>
               ))}
             </div>

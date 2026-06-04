@@ -70,17 +70,28 @@ function AudioEngine() {
 
   useEffect(() => {
     const loadAndPlayTrack = async () => {
-      if (!currentTrack || !currentTrack.fileHandle) return;
+      if (!currentTrack) return;
 
       try {
-        // Cleanup previous URL
-        if (objectUrlRef.current) {
+        // Cleanup previous object URL (only if we created it — not for pre-built urls)
+        if (objectUrlRef.current && !currentTrack.url) {
           URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
         }
 
-        const file = await currentTrack.fileHandle.getFile();
-        const url = URL.createObjectURL(file);
-        objectUrlRef.current = url;
+        let url;
+
+        if (currentTrack.fileHandle) {
+          // Desktop: File System Access API — get file from handle
+          const file = await currentTrack.fileHandle.getFile();
+          url = URL.createObjectURL(file);
+          objectUrlRef.current = url;
+        } else if (currentTrack.url) {
+          // Mobile fallback: track already has an object URL, use it directly
+          url = currentTrack.url;
+        } else {
+          return; // No audio source available
+        }
 
         if (audioRef.current) {
           audioRef.current.src = url;
@@ -208,7 +219,6 @@ function AudioEngine() {
       onTimeUpdate={handleTimeUpdate}
       onLoadedMetadata={handleLoadedMetadata}
       onEnded={handleEnded}
-      crossOrigin="anonymous"
       style={{ display: 'none' }}
     />
   );

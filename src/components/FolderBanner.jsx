@@ -1,16 +1,66 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 import { promptForZemaRoot, loadLibrary, importSingle, importAlbum } from '../services/FileSystem';
+import * as jsmediatags from 'jsmediatags';
+
+// Detect whether the File System Access API is available (desktop Chrome/Edge)
+const supportsFileSystemAPI = typeof window.showDirectoryPicker === 'function';
+
+function readTagsFromFile(file) {
+  return new Promise((resolve) => {
+    jsmediatags.read(file, {
+      onSuccess: (tag) => resolve(tag.tags),
+      onError: () => resolve(null),
+    });
+  });
+}
+
+async function buildTrackFromFile(file) {
+  let title = file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
+  let artist = 'Unknown Artist';
+  let coverArt = null;
+
+  if (title.includes(' - ')) {
+    const parts = title.split(' - ');
+    artist = parts[0].trim();
+    title = parts.slice(1).join(' - ').trim();
+  }
+
+  try {
+    const tags = await readTagsFromFile(file);
+    if (tags) {
+      if (tags.title) title = tags.title;
+      if (tags.artist) artist = tags.artist;
+      if (tags.picture) {
+        const blob = new Blob([new Uint8Array(tags.picture.data)], { type: tags.picture.format });
+        coverArt = URL.createObjectURL(blob);
+      }
+    }
+  } catch (e) {}
+
+  const url = URL.createObjectURL(file);
+  return {
+    id: `mobile_${file.name}_${file.size}`,
+    title,
+    artist,
+    coverArt,
+    url, // direct object URL — no fileHandle needed
+    path: file.name,
+  };
+}
 
 const FolderBanner = () => {
-  const { zemaRootSelected, setZemaRootSelected, setLibrary, singles, albums } = usePlayerStore();
+  const { zemaRootSelected, setZemaRootSelected, setLibrary, singles, albums, addToast } = usePlayerStore();
+  const mobileInputRef = useRef(null);
+
+  // ── Desktop (File System Access API) handlers ──
 
   const handleSetup = async () => {
     const root = await promptForZemaRoot();
     if (root) {
       setZemaRootSelected(true);
-      const { singles, albums } = await loadLibrary();
-      setLibrary(singles, albums);
+      const { singles, albums, playlists } = await loadLibrary();
+      setLibrary(singles, albums, playlists);
     }
   };
 
@@ -20,9 +70,9 @@ const FolderBanner = () => {
         types: [{ description: 'Audio Files', accept: { 'audio/*': ['.mp3', '.wav', '.m4a'] } }]
       });
       await importSingle(fileHandle);
-      const { singles, albums } = await loadLibrary();
-      setLibrary(singles, albums);
-    } catch(e) {
+      const { singles, albums, playlists } = await loadLibrary();
+      setLibrary(singles, albums, playlists);
+    } catch (e) {
       console.log('Single import cancelled or failed');
     }
   };
@@ -31,13 +81,69 @@ const FolderBanner = () => {
     try {
       const folderHandle = await window.showDirectoryPicker();
       await importAlbum(folderHandle);
-      const { singles, albums } = await loadLibrary();
-      setLibrary(singles, albums);
+      const { singles, albums, playlists } = await loadLibrary();
+      setLibrary(singles, albums, playlists);
     } catch (e) {
       console.log('Album import cancelled or failed');
     }
   };
 
+  // ── Mobile fallback handler ──
+
+  const handleMobileFileChange = async (e) => {
+    const files = Array.from(e.target.files).filter(
+      f => f.type.startsWith('audio/') || /\.(mp3|m4a|wav|ogg|flac)$/i.test(f.name)
+    );
+    if (files.length === 0) return;
+
+    addToast(`Loading ${files.length} track${files.length > 1 ? 's' : ''}...`, 'loading');
+    const newTracks = await Promise.all(files.map(buildTrackFromFile));
+
+    // Merge into existing singles (avoid duplicates by id)
+    const existingIds = new Set(singles.map(t => t.id));
+    const merged = [...singles, ...newTracks.filter(t => !existingIds.has(t.id))];
+    setLibrary(merged, albums);
+    // Mark root as "selected" so the banner flips to the ready state
+    setZemaRootSelected(true);
+    addToast(`Added ${newTracks.length} track${newTracks.length > 1 ? 's' : ''}!`, 'success');
+
+    // Reset input so same files can be picked again
+    e.target.value = '';
+  };
+
+  // ── Render ──
+
+  if (!supportsFileSystemAPI) {
+    // Mobile / unsupported browser — show simple file picker
+    return (
+      <div className="folder-banner">
+        <div className="folder-banner-text">
+          <h2>Add Music</h2>
+          <p>
+            Tap below to pick audio files from your device.
+            {singles.length > 0 && (
+              <span style={{ color: 'var(--color-primary)', display: 'block', marginTop: '4px' }}>
+                {singles.length} track{singles.length !== 1 ? 's' : ''} loaded
+              </span>
+            )}
+          </p>
+        </div>
+        <button className="btn-primary" onClick={() => mobileInputRef.current?.click()}>
+          Add Audio Files
+        </button>
+        <input
+          ref={mobileInputRef}
+          type="file"
+          accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac"
+          multiple
+          style={{ display: 'none' }}
+          onChange={handleMobileFileChange}
+        />
+      </div>
+    );
+  }
+
+  // Desktop — original folder-picker flow
   if (!zemaRootSelected) {
     return (
       <div className="folder-banner">

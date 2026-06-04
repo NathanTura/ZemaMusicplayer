@@ -388,3 +388,102 @@
 .sidebar.hidden-right {
   transform: translateX(100%);
 }
+
+/* ── Mobile Lyrics overrides ── */
+.mobile-only .lyrics-container {
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 20px 100px 20px;
+}
+
+.mobile-only .lyric-line {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Mini lyrics header (album art + track name + dynamic gradient) */
+.mobile-lyrics-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 20px 24px 20px;
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+  /* bg is set inline via JS */
+  transition: background 0.6s ease;
+}
+
+/* subtle blurred art bg layer */
+.mobile-lyrics-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  filter: blur(40px) saturate(1.4);
+  opacity: 0.4;
+  z-index: 0;
+}
+
+.mobile-lyrics-cover {
+  position: relative;
+  z-index: 1;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+}
+
+.mobile-lyrics-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mobile-lyrics-meta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobile-lyrics-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* pill style like desktop */
+  background: rgba(0,0,0,0.45);
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.mobile-lyrics-artist {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(0,0,0,0.3);
+  padding: 1px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  max-width: 100%;
+}
