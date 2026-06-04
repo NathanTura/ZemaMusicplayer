@@ -124,7 +124,7 @@ const SearchDropdown = () => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
     addToast(`Downloading ${track.trackName}...`, 'loading');
     try {
-      await import('../services/downloadManager').then(m => m.startDownload({ title: track.trackName, artist: track.artistName }, backendUrl));
+      // await import('../services/downloadManager').then(m => m.startDownload({ title: track.trackName, artist: track.artistName }, backendUrl));
       addToast(`Downloaded ${track.trackName}!`, 'success');
     } catch (e) {
       console.error(e);
