@@ -11,10 +11,10 @@ const TopNav = ({ currentView, setCurrentView }) => {
   <header className="top-nav desktop-only">
     <div className="nav-container-centered">
       <div className="nav-left">
-        <div className="logo-wrapper" onClick={() => setCurrentView('Home')} style={{ cursor: 'pointer' }}>
+        {/* <div className="logo-wrapper" onClick={() => setCurrentView('Home')} style={{ cursor: 'pointer' }}>
           <img src="/logo.png" alt="Zema Logo" className="app-logo" />
           <span className="logo-text">Zema</span>
-        </div>
+        </div> */}
         <nav className="nav-links">
           <a href="#" className={currentView === 'Home' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('Home'); }}>Home</a>
           <a href="#" className={currentView === 'Library' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('Library'); }}>Library</a>
