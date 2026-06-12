@@ -155,9 +155,15 @@ const usePlayerStore = create((set, get) => ({
       }
     }
     
+    const nextTrackObj = state.queue[nextIndex];
+    const historyWithoutTrack = state.history.filter(t => t.id !== nextTrackObj.id);
+    const newHistory = [nextTrackObj, ...historyWithoutTrack].slice(0, 50);
+    setIDB('zema_history', newHistory.map(t => t.id)).catch(console.error);
+
     return {
       currentIndex: nextIndex,
-      currentTrack: state.queue[nextIndex],
+      currentTrack: nextTrackObj,
+      history: newHistory,
       isPlaying: true
     };
   }),
@@ -170,9 +176,15 @@ const usePlayerStore = create((set, get) => ({
       return state;
     }
     const prevIndex = (state.currentIndex - 1 + state.queue.length) % state.queue.length;
+    const prevTrackObj = state.queue[prevIndex];
+    const historyWithoutTrack = state.history.filter(t => t.id !== prevTrackObj.id);
+    const newHistory = [prevTrackObj, ...historyWithoutTrack].slice(0, 50);
+    setIDB('zema_history', newHistory.map(t => t.id)).catch(console.error);
+
     return {
       currentIndex: prevIndex,
-      currentTrack: state.queue[prevIndex],
+      currentTrack: prevTrackObj,
+      history: newHistory,
       isPlaying: true
     };
   }),
