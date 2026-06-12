@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { NativeAudio } from '@capgo/capacitor-native-audio';
 import usePlayerStore from '../store/usePlayerStore';
+
+const isNative = Capacitor.isNativePlatform();
 
 function AudioEngine() {
   const audioRef = useRef(null);
   const objectUrlRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const sourceNodeRef = useRef(null);
-  const filtersRef = useRef([]);
+  const intervalRef = useRef(null);
 
   const {
     currentTrack,
@@ -17,58 +19,34 @@ function AudioEngine() {
     setIsPlaying,
     nextTrack,
     volume,
-    eqEnabled,
-    eqGains,
     setPreloadedLyrics,
     setPreloadedArtistInfo
   } = usePlayerStore();
 
+  // Handle native "complete" event for next track
   useEffect(() => {
-    if (audioRef.current && !audioContextRef.current) {
+    if (isNative) {
+      const listener = NativeAudio.addListener('complete', () => {
+        nextTrack();
+      });
+      return () => {
+        listener.then(l => l.remove());
+      };
+    }
+  }, [nextTrack]);
+
+  // Pass HTML Audio element to store for Web/Desktop
+  useEffect(() => {
+    if (!isNative && audioRef.current) {
       setAudioElement(audioRef.current);
-      
-      try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioContext();
-        audioContextRef.current = ctx;
-        
-        const source = ctx.createMediaElementSource(audioRef.current);
-        sourceNodeRef.current = source;
-        
-        const frequencies = [60, 230, 910, 3600, 14000];
-        const filters = frequencies.map(freq => {
-          const filter = ctx.createBiquadFilter();
-          filter.type = 'peaking';
-          filter.frequency.value = freq;
-          filter.Q.value = 1;
-          filter.gain.value = 0;
-          return filter;
-        });
-        
-        source.connect(filters[0]);
-        for (let i = 0; i < filters.length - 1; i++) {
-          filters[i].connect(filters[i + 1]);
-        }
-        filters[filters.length - 1].connect(ctx.destination);
-        
-        filtersRef.current = filters;
-      } catch (err) {
-        console.warn('Failed to initialize AudioContext (EQ unavailable):', err);
-      }
     }
   }, [setAudioElement]);
 
   useEffect(() => {
-    if (filtersRef.current.length > 0) {
-      filtersRef.current.forEach((filter, i) => {
-        filter.gain.value = eqEnabled ? eqGains[i] : 0;
-      });
-    }
-  }, [eqEnabled, eqGains]);
-
-  useEffect(() => {
-    if (audioRef.current) {
+    if (!isNative && audioRef.current) {
       audioRef.current.volume = volume;
+    } else if (isNative) {
+      NativeAudio.setVolume({ assetId: 'current', volume: volume }).catch(() => {});
     }
   }, [volume]);
 
@@ -77,30 +55,46 @@ function AudioEngine() {
       if (!currentTrack) return;
 
       try {
-        // Cleanup previous object URL (only if we created it — not for pre-built urls)
         if (objectUrlRef.current && !currentTrack.url) {
           URL.revokeObjectURL(objectUrlRef.current);
           objectUrlRef.current = null;
         }
 
-        let url;
+        let url = currentTrack.url;
 
-        if (currentTrack.fileHandle) {
-          // Desktop: File System Access API — get file from handle
+        // Native File Handling (Desktop PWA)
+        if (currentTrack.fileHandle && !url) {
           const file = await currentTrack.fileHandle.getFile();
           url = URL.createObjectURL(file);
           objectUrlRef.current = url;
-        } else if (currentTrack.url) {
-          // Mobile fallback: track already has an object URL, use it directly
-          url = currentTrack.url;
-        } else {
-          return; // No audio source available
         }
 
-        if (audioRef.current) {
-          audioRef.current.src = url;
+        if (!url) return;
+
+        if (isNative) {
+          // Cleanup previous
+          await NativeAudio.unload({ assetId: 'current' }).catch(() => {});
+          
+          await NativeAudio.preload({
+            assetId: 'current',
+            assetPath: url,
+            audioChannelNum: 1,
+            isUrl: true
+          });
+
+          const dur = await NativeAudio.getDuration({ assetId: 'current' });
+          setDuration(dur.duration);
+          
           if (isPlaying) {
-            audioRef.current.play().catch(e => console.error("Playback failed", e));
+            await NativeAudio.play({ assetId: 'current' });
+          }
+        } else {
+          // Web Audio
+          if (audioRef.current) {
+            audioRef.current.src = url;
+            if (isPlaying) {
+              audioRef.current.play().catch(e => console.error("Playback failed", e));
+            }
           }
         }
       } catch (error) {
@@ -117,7 +111,6 @@ function AudioEngine() {
       const title = encodeURIComponent(currentTrack.title);
       const artist = encodeURIComponent(currentTrack.artist);
 
-      // Preload Lyrics
       fetch(`https://lrclib.net/api/get?track_name=${title}&artist_name=${artist}`)
         .then(res => res.ok ? res.json() : Promise.reject('Not found'))
         .then(data => {
@@ -129,9 +122,8 @@ function AudioEngine() {
             setPreloadedLyrics(null, 'No lyrics available');
           }
         })
-        .catch(() => setPreloadedLyrics(null, 'No synchronized lyrics found for this track.'));
+        .catch(() => setPreloadedLyrics(null, 'No synchronized lyrics found.'));
 
-      // Preload Artist Info
       fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${artist}`)
         .then(res => res.ok ? res.json() : Promise.reject('Not found'))
         .then(data => {
@@ -147,7 +139,6 @@ function AudioEngine() {
           }
         })
         .catch(() => {
-          // Fallback to iTunes
           fetch(`https://itunes.apple.com/search?term=${artist}&entity=musicArtist&limit=1`)
             .then(res => res.ok ? res.json() : Promise.reject('Not found'))
             .then(data => {
@@ -160,10 +151,10 @@ function AudioEngine() {
                    url: artistInfo.artistLinkUrl
                  }, null);
                } else {
-                 setPreloadedArtistInfo(null, 'No online information found for this artist.');
+                 setPreloadedArtistInfo(null, 'No online info found.');
                }
             })
-            .catch(() => setPreloadedArtistInfo(null, 'No online information found for this artist.'));
+            .catch(() => setPreloadedArtistInfo(null, 'No online info found.'));
         });
     };
 
@@ -171,51 +162,74 @@ function AudioEngine() {
     preloadMetadata();
 
     return () => {
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-      }
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
     };
-  }, [currentTrack]); // Only reload when track changes
+  }, [currentTrack]);
 
-  // Play/Pause effect
+  // Manage Playback state (Play/Pause)
   useEffect(() => {
     const managePlayback = async () => {
-      if (audioRef.current) {
-        if (isPlaying) {
-          try {
-            if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-              await audioContextRef.current.resume();
-            }
-            if (audioRef.current.src) {
-              await audioRef.current.play();
-            }
-          } catch (e) {
-             console.error("Play error", e);
-             setIsPlaying(false);
+      try {
+        if (isNative) {
+          if (isPlaying) {
+            await NativeAudio.play({ assetId: 'current' }).catch(() => {});
+          } else {
+            await NativeAudio.pause({ assetId: 'current' }).catch(() => {});
           }
         } else {
-          audioRef.current.pause();
+          if (audioRef.current) {
+            if (isPlaying) {
+              await audioRef.current.play().catch(e => {
+                console.error("Play error", e);
+                setIsPlaying(false);
+              });
+            } else {
+              audioRef.current.pause();
+            }
+          }
         }
-      }
+      } catch (err) {}
     };
     managePlayback();
   }, [isPlaying, setIsPlaying]);
 
+  // Polling for Native Progress updates
+  useEffect(() => {
+    if (isNative) {
+      if (isPlaying) {
+        intervalRef.current = setInterval(async () => {
+          try {
+            const time = await NativeAudio.getCurrentTime({ assetId: 'current' });
+            setProgress(time.currentTime);
+          } catch (e) {}
+        }, 500);
+      } else {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      }
+      return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
+    }
+  }, [isPlaying, setProgress]);
+
+  // HTML Audio Events for Web/Desktop
   const handleTimeUpdate = () => {
-    if (audioRef.current) {
+    if (!isNative && audioRef.current) {
       setProgress(audioRef.current.currentTime);
     }
   };
 
   const handleLoadedMetadata = () => {
-    if (audioRef.current) {
+    if (!isNative && audioRef.current) {
       setDuration(audioRef.current.duration);
     }
   };
 
   const handleEnded = () => {
-    nextTrack();
+    if (!isNative) nextTrack();
   };
+
+  if (isNative) return null;
 
   return (
     <audio

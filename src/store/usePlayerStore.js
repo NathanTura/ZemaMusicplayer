@@ -35,10 +35,6 @@ const usePlayerStore = create((set, get) => ({
   duration: 0,
   volume: 1,
   
-  // Equalizer State
-  eqEnabled: true,
-  eqGains: [0, 0, 0, 0, 0],
-  
   // Playback Modes
   isShuffle: false,
   repeatMode: 'off', // 'off', 'all', 'one'
@@ -67,9 +63,6 @@ const usePlayerStore = create((set, get) => ({
   })),
   
   setAudioElement: (audio) => set({ audioElement: audio }),
-  
-  setEqEnabled: (enabled) => set({ eqEnabled: enabled }),
-  setEqGains: (gains) => set({ eqGains: gains }),
   
   toggleShuffle: () => set((state) => ({ isShuffle: !state.isShuffle })),
   cycleRepeat: () => set((state) => {

@@ -10,10 +10,6 @@ const MobileBottomNav = ({ currentView, setCurrentView }) => (
       <span className="material-symbols-rounded">library_music</span>
       <span>Library</span>
     </button>
-    <button className={`nav-item ${currentView === 'Equalizer' ? 'active' : ''}`} onClick={() => setCurrentView('Equalizer')}>
-      <span className="material-symbols-rounded">equalizer</span>
-      <span>Equalizer</span>
-    </button>
   </nav>
 );
 

@@ -5,7 +5,6 @@ import TopNav from './components/TopNav';
 import MobileTopNav from './components/MobileTopNav';
 import HomeView from './views/HomeView';
 import LibraryView from './views/LibraryView';
-import EqualizerView from './views/EqualizerView';
 import SearchView from './views/SearchView';
 import AlbumView from './views/AlbumView';
 import PlaylistView from './views/PlaylistView';
@@ -34,7 +33,7 @@ function App() {
     selectedAlbum, selectedPlaylist, playlistModalTrack, setPlaylistModalTrack 
   } = usePlayerStore();
 
-  const viewOrder = useMemo(() => ['Home', 'Library', 'AlbumDetails', 'PlaylistDetails', 'Equalizer'], []);
+  const viewOrder = useMemo(() => ['Home', 'Library', 'AlbumDetails', 'PlaylistDetails'], []);
   const [direction, setDirection] = useState(0);
 
   const pageVariants = {
@@ -163,9 +162,7 @@ function App() {
                       <AlbumView setCurrentView={handleSetView} album={selectedAlbum} />
                     ) : currentView === 'PlaylistDetails' ? (
                       <PlaylistView setCurrentView={handleSetView} playlist={selectedPlaylist} />
-                    ) : (
-                      <EqualizerView />
-                    )}
+                    ) : null}
                   </motion.div>
                 </AnimatePresence>
               )}
