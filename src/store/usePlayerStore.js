@@ -84,6 +84,15 @@ const usePlayerStore = create((set, get) => ({
       queue = [track];
     }
     
+    // If the track is already playing, restart it
+    if (state.currentTrack && state.currentTrack.id === track.id) {
+      if (state.audioElement) {
+        state.audioElement.currentTime = 0;
+        state.audioElement.play().catch(e => console.error(e));
+      }
+      return { isPlaying: true, queue, currentIndex: queue.findIndex(t => t.id === track.id) };
+    }
+    
     // Update history
     const historyWithoutTrack = state.history.filter(t => t.id !== track.id);
     const newHistory = [track, ...historyWithoutTrack].slice(0, 50); // Keep last 50
@@ -128,7 +137,17 @@ const usePlayerStore = create((set, get) => ({
       const hydratedHistory = historyIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
       const hydratedLikes = likesIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
       
-      set({ history: hydratedHistory, likes: hydratedLikes });
+      const updates = { history: hydratedHistory, likes: hydratedLikes };
+      
+      // Load last played track on startup
+      if (hydratedHistory.length > 0 && !get().currentTrack) {
+        updates.currentTrack = hydratedHistory[0];
+        updates.queue = hydratedHistory;
+        updates.currentIndex = 0;
+        updates.isPlaying = false;
+      }
+      
+      set(updates);
     } catch (e) {
       console.error("Failed to rehydrate data", e);
     }
