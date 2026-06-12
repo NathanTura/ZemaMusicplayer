@@ -27,30 +27,34 @@ function AudioEngine() {
     if (audioRef.current && !audioContextRef.current) {
       setAudioElement(audioRef.current);
       
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AudioContext();
-      audioContextRef.current = ctx;
-      
-      const source = ctx.createMediaElementSource(audioRef.current);
-      sourceNodeRef.current = source;
-      
-      const frequencies = [60, 230, 910, 3600, 14000];
-      const filters = frequencies.map(freq => {
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'peaking';
-        filter.frequency.value = freq;
-        filter.Q.value = 1;
-        filter.gain.value = 0;
-        return filter;
-      });
-      
-      source.connect(filters[0]);
-      for (let i = 0; i < filters.length - 1; i++) {
-        filters[i].connect(filters[i + 1]);
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        audioContextRef.current = ctx;
+        
+        const source = ctx.createMediaElementSource(audioRef.current);
+        sourceNodeRef.current = source;
+        
+        const frequencies = [60, 230, 910, 3600, 14000];
+        const filters = frequencies.map(freq => {
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'peaking';
+          filter.frequency.value = freq;
+          filter.Q.value = 1;
+          filter.gain.value = 0;
+          return filter;
+        });
+        
+        source.connect(filters[0]);
+        for (let i = 0; i < filters.length - 1; i++) {
+          filters[i].connect(filters[i + 1]);
+        }
+        filters[filters.length - 1].connect(ctx.destination);
+        
+        filtersRef.current = filters;
+      } catch (err) {
+        console.warn('Failed to initialize AudioContext (EQ unavailable):', err);
       }
-      filters[filters.length - 1].connect(ctx.destination);
-      
-      filtersRef.current = filters;
     }
   }, [setAudioElement]);
 

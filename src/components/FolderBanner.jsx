@@ -15,39 +15,7 @@ function readTagsFromFile(file) {
   });
 }
 
-async function buildTrackFromFile(file) {
-  let title = file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
-  let artist = 'Unknown Artist';
-  let coverArt = null;
 
-  if (title.includes(' - ')) {
-    const parts = title.split(' - ');
-    artist = parts[0].trim();
-    title = parts.slice(1).join(' - ').trim();
-  }
-
-  try {
-    const tags = await readTagsFromFile(file);
-    if (tags) {
-      if (tags.title) title = tags.title;
-      if (tags.artist) artist = tags.artist;
-      if (tags.picture) {
-        const blob = new Blob([new Uint8Array(tags.picture.data)], { type: tags.picture.format });
-        coverArt = URL.createObjectURL(blob);
-      }
-    }
-  } catch (e) {}
-
-  const url = URL.createObjectURL(file);
-  return {
-    id: `mobile_${file.name}_${file.size}`,
-    title,
-    artist,
-    coverArt,
-    url, // direct object URL — no fileHandle needed
-    path: file.name,
-  };
-}
 
 const FolderBanner = () => {
   const { zemaRootSelected, setZemaRootSelected, setLibrary, singles, albums, addToast } = usePlayerStore();
@@ -97,15 +65,20 @@ const FolderBanner = () => {
     if (files.length === 0) return;
 
     addToast(`Loading ${files.length} track${files.length > 1 ? 's' : ''}...`, 'loading');
-    const newTracks = await Promise.all(files.map(buildTrackFromFile));
+    
+    // Process and persist files
+    for (const file of files) {
+      // Save it directly using our new fallback function!
+      await import('../services/FileSystem').then(m => m.saveBlobToSingles(file, file.name));
+    }
 
-    // Merge into existing singles (avoid duplicates by id)
-    const existingIds = new Set(singles.map(t => t.id));
-    const merged = [...singles, ...newTracks.filter(t => !existingIds.has(t.id))];
-    setLibrary(merged, albums);
+    // Reload library to get the updated mobile singles
+    const { singles: newSingles, albums: newAlbums, playlists: newPlaylists } = await loadLibrary();
+    setLibrary(newSingles, newAlbums, newPlaylists);
+    
     // Mark root as "selected" so the banner flips to the ready state
     setZemaRootSelected(true);
-    addToast(`Added ${newTracks.length} track${newTracks.length > 1 ? 's' : ''}!`, 'success');
+    addToast(`Added ${files.length} track${files.length > 1 ? 's' : ''}!`, 'success');
 
     // Reset input so same files can be picked again
     e.target.value = '';

@@ -152,21 +152,36 @@ export async function importSingle(fileHandle) {
 }
 
 /**
- * Saves a raw Blob to the Singles folder
+ * Saves a raw Blob to the Singles folder (or IndexedDB on mobile)
  */
 export async function saveBlobToSingles(blob, filename) {
   const root = await getZemaRoot();
   if (!root) {
-    // Fallback to browser download if no Zema root is set
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    return false;
+    // Mobile fallback: save blob to IndexedDB
+    try {
+      const mobileSingles = await get('zema_mobile_singles') || [];
+      const newTrack = await buildMobileTrackFromBlob(blob, filename);
+      
+      // Avoid exact duplicates
+      const exists = mobileSingles.find(t => t.id === newTrack.id);
+      if (!exists) {
+        mobileSingles.push(newTrack);
+        await set('zema_mobile_singles', mobileSingles);
+      }
+      return true; // Successfully saved internally!
+    } catch (e) {
+      console.error('Error saving to mobile IndexedDB', e);
+      // Fallback to browser download if IDB fails
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      return false;
+    }
   }
   
   const singlesDir = await ensureDirectory(root, 'Singles');
@@ -175,6 +190,50 @@ export async function saveBlobToSingles(blob, filename) {
   await writable.write(blob);
   await writable.close();
   return true;
+}
+
+/**
+ * Helper to build track object from raw Blob/File for mobile IDB
+ */
+export async function buildMobileTrackFromBlob(blob, filename) {
+  let title = filename.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
+  let artist = 'Unknown Artist';
+  let coverArtBlob = null;
+
+  if (title.includes(' - ')) {
+    const parts = title.split(' - ');
+    artist = parts[0].trim();
+    title = parts.slice(1).join(' - ').trim();
+  }
+
+  try {
+    const file = new File([blob], filename, { type: blob.type || 'audio/mpeg' });
+    const tags = await new Promise((resolve) => {
+      jsmediatags.read(file, {
+        onSuccess: (tag) => resolve(tag.tags),
+        onError: () => resolve(null),
+      });
+    });
+
+    if (tags) {
+      if (tags.title) title = tags.title;
+      if (tags.artist) artist = tags.artist;
+      if (tags.picture) {
+        coverArtBlob = new Blob([new Uint8Array(tags.picture.data)], { type: tags.picture.format });
+      }
+    }
+  } catch (e) {
+    console.error("Error reading tags for mobile track", e);
+  }
+
+  return {
+    id: `mobile_${filename}_${Date.now()}`,
+    title,
+    artist,
+    coverArtBlob,
+    audioBlob: blob,
+    path: filename,
+  };
 }
 
 /**
@@ -332,8 +391,22 @@ async function getAudioFilesInDir(dirHandle, pathPrefix = '') {
  * Loads all tracks from Zema library
  */
 export async function loadLibrary() {
+  let mobileSinglesTracks = [];
+  try {
+    const mobileSingles = await get('zema_mobile_singles') || [];
+    mobileSinglesTracks = mobileSingles.map(t => ({
+      ...t,
+      coverArt: t.coverArtBlob ? URL.createObjectURL(t.coverArtBlob) : null,
+      url: t.audioBlob ? URL.createObjectURL(t.audioBlob) : null,
+    }));
+  } catch (e) {
+    console.error("Error loading mobile singles", e);
+  }
+
   const root = await getZemaRoot();
-  if (!root) return { singles: [], albums: [] };
+  if (!root) {
+    return { singles: mobileSinglesTracks, albums: [], playlists: [] };
+  }
 
   const tracks = [];
   const singlesDir = await ensureDirectory(root, 'Singles');
