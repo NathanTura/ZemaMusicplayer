@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
-import { startDownload } from '../services/downloadManager';
+import { startDownload, downloadAlbumSequential } from '../services/downloadManager';
 
 const OnlineAlbumView = ({ setCurrentView }) => {
   const { selectedOnlineAlbum, library, activeDownloads } = usePlayerStore();
@@ -39,14 +39,7 @@ const OnlineAlbumView = ({ setCurrentView }) => {
   };
 
   const handleDownloadAll = () => {
-    tracks.forEach(track => {
-      if (!isDownloaded(track.trackName) && !isDownloading(track.trackName)) {
-        startDownload({
-          title: track.trackName,
-          artist: track.artistName
-        });
-      }
-    });
+    downloadAlbumSequential(tracks, isDownloaded);
   };
 
   if (!selectedOnlineAlbum) {

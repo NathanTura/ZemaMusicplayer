@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
-import { startDownload } from '../services/downloadManager';
+import { startDownload, downloadAlbumSequential } from '../services/downloadManager';
 
 const ArtistView = ({ setCurrentView, artist }) => {
   const { playTrack, library } = usePlayerStore();
@@ -36,6 +36,18 @@ const ArtistView = ({ setCurrentView, artist }) => {
   const isDownloaded = (trackName) => {
     return library.singles.some(t => t.title.toLowerCase() === trackName.toLowerCase()) || 
            library.albums.some(a => a.tracks.some(t => t.title.toLowerCase() === trackName.toLowerCase()));
+  };
+
+  const handleDownloadAlbum = async (album, e) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`);
+      const data = await res.json();
+      const songResults = data.results.filter(r => r.wrapperType === 'track');
+      downloadAlbumSequential(songResults, isDownloaded);
+    } catch (error) {
+      console.error('Failed to fetch and download album', error);
+    }
   };
 
   if (!artist) {
@@ -175,7 +187,17 @@ const ArtistView = ({ setCurrentView, artist }) => {
                       setCurrentView('OnlineAlbumDetails');
                     }}>
                       {album.artworkUrl100 ? (
-                        <img className="card-art" src={album.artworkUrl100.replace('100x100bb', '300x300bb')} alt="Cover" style={{ objectFit: 'cover' }} />
+                        <div style={{ position: 'relative' }}>
+                          <img className="card-art" src={album.artworkUrl100.replace('100x100bb', '300x300bb')} alt="Cover" style={{ objectFit: 'cover' }} />
+                          <button 
+                            className="icon-btn" 
+                            style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', borderRadius: '50%' }}
+                            onClick={(e) => handleDownloadAlbum(album, e)}
+                            title="Download Album"
+                          >
+                            <span className="material-symbols-rounded" style={{ color: '#fff', fontSize: '20px' }}>download</span>
+                          </button>
+                        </div>
                       ) : (
                         <div className="card-art empty-card-art"><span className="material-symbols-rounded">album</span></div>
                       )}

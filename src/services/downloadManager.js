@@ -120,4 +120,22 @@ export async function cancelDownload(id) {
   usePlayerStore.getState().removeDownload(id);
 }
 
-export default { startDownload, pauseDownload, resumeDownload, cancelDownload };
+export async function downloadAlbumSequential(tracks, isDownloadedFn, backendUrl = DEFAULT_BACKEND_URL) {
+  for (const track of tracks) {
+    const isDownloaded = isDownloadedFn ? isDownloadedFn(track.trackName) : false;
+    const isDownloading = usePlayerStore.getState().activeDownloads.some(d => d.title.toLowerCase() === track.trackName.toLowerCase() && d.status === 'downloading');
+    
+    if (!isDownloaded && !isDownloading) {
+      try {
+        await startDownload({
+          title: track.trackName,
+          artist: track.artistName
+        }, backendUrl);
+      } catch (e) {
+        console.error(`Failed to download ${track.trackName}`, e);
+      }
+    }
+  }
+}
+
+export default { startDownload, pauseDownload, resumeDownload, cancelDownload, downloadAlbumSequential };
