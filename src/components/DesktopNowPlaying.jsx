@@ -36,8 +36,8 @@ const getAverageColor = (imgUrl) => {
   });
 };
 
-const DesktopNowPlaying = () => {
-  const { currentTrack, desktopNowPlayingOpen, setDesktopNowPlayingOpen, isPlaying, togglePlay, progress, duration, seek } = usePlayerStore();
+const DesktopNowPlaying = ({ setCurrentView }) => {
+  const { currentTrack, desktopNowPlayingOpen, setDesktopNowPlayingOpen, isPlaying, togglePlay, progress, duration, seek, artists, setSelectedArtist } = usePlayerStore();
   const [bgColor, setBgColor] = useState('rgb(42, 42, 42)');
   const [artistImage, setArtistImage] = useState(null);
 
@@ -107,7 +107,21 @@ const DesktopNowPlaying = () => {
                           <h1 className="dnp-title">{currentTrack?.title || 'No Track'}</h1>
                         </div>
                         <div className="dnp-artist-pill">
-                          <h2 className="dnp-artist">{currentTrack?.artist || 'Unknown Artist'} {currentTrack?.album ? `- ${currentTrack.album}` : ''}</h2>
+                          <h2 className="dnp-artist" 
+                              onClick={() => {
+                                if (currentTrack?.artist && currentTrack.artist !== 'Unknown Artist') {
+                                  const artistObj = artists?.find(a => a.name === currentTrack.artist);
+                                  if (artistObj) {
+                                    setSelectedArtist(artistObj);
+                                    setDesktopNowPlayingOpen(false);
+                                    setCurrentView('ArtistDetails');
+                                  }
+                                }
+                              }}
+                              style={{ cursor: 'pointer' }}
+                          >
+                            {currentTrack?.artist || 'Unknown Artist'} {currentTrack?.album ? `- ${currentTrack.album}` : ''}
+                          </h2>
                         </div>
                       </div>
                     </div>

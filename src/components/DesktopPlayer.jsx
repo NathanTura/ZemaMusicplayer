@@ -8,7 +8,7 @@ const formatTime = (time) => {
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
-const DesktopPlayer = () => {
+const DesktopPlayer = ({ setCurrentView }) => {
   const {
     currentTrack,
     isPlaying,
@@ -47,7 +47,20 @@ const DesktopPlayer = () => {
             </div>
             <div className="track-text">
               <div className="track-title">{currentTrack ? currentTrack.title : 'No track selected'}</div>
-              <div className="track-artist">{currentTrack ? currentTrack.artist : 'Unknown Artist'}</div>
+              <div className="track-artist"
+                   onClick={() => {
+                     if (currentTrack?.artist && currentTrack.artist !== 'Unknown Artist') {
+                       const artistObj = artists?.find(a => a.name === currentTrack.artist);
+                       if (artistObj) {
+                         setSelectedArtist(artistObj);
+                         setCurrentView('ArtistDetails');
+                       }
+                     }
+                   }}
+                   style={{ cursor: 'pointer' }}
+              >
+                {currentTrack ? currentTrack.artist : 'Unknown Artist'}
+              </div>
             </div>
             <div className="player-actions-left" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
               <button className={`icon-btn like-btn ${isLiked ? 'active' : ''}`} onClick={() => currentTrack && toggleLike(currentTrack)}>

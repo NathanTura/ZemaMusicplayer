@@ -1,8 +1,8 @@
 import React from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 
-const MobileMiniPlayer = ({ onToggle }) => {
-  const { currentTrack, isPlaying, progress, duration, togglePlay, likes, toggleLike } = usePlayerStore();
+const MobileMiniPlayer = ({ onToggle, setCurrentView }) => {
+  const { currentTrack, isPlaying, progress, duration, togglePlay, likes, toggleLike, artists, setSelectedArtist } = usePlayerStore();
   
   const percentComplete = duration > 0 ? (progress / duration) * 100 : 0;
   const isLiked = currentTrack && likes.some(t => t.id === currentTrack.id);
@@ -32,7 +32,21 @@ const MobileMiniPlayer = ({ onToggle }) => {
         </div>
         <div className="mini-text">
           <span className="mini-title">{currentTrack ? currentTrack.title : 'No track selected'}</span>
-          <span className="mini-artist">{currentTrack ? currentTrack.artist : 'Unknown Artist'}</span>
+          <span className="mini-artist"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (currentTrack?.artist && currentTrack.artist !== 'Unknown Artist') {
+                    const artistObj = artists?.find(a => a.name === currentTrack.artist);
+                    if (artistObj) {
+                      setSelectedArtist(artistObj);
+                      if (setCurrentView) setCurrentView('ArtistDetails');
+                    }
+                  }
+                }}
+                style={{ pointerEvents: 'auto' }}
+          >
+            {currentTrack ? currentTrack.artist : 'Unknown Artist'}
+          </span>
         </div>
         <button 
           className={`icon-btn like-btn ${isLiked ? 'active' : ''}`} 

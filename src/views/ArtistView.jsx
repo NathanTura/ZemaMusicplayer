@@ -170,7 +170,10 @@ const ArtistView = ({ setCurrentView, artist }) => {
                 <h3 style={{ marginTop: '40px', marginBottom: '15px' }}>Discography</h3>
                 <div className="horizontal-scroll" style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '20px' }}>
                   {onlineData.albums.map((album, i) => (
-                    <div className="card" key={i} style={{ minWidth: '160px' }}>
+                    <div className="card" key={i} style={{ minWidth: '160px' }} onClick={() => {
+                      usePlayerStore.getState().setSelectedOnlineAlbum(album);
+                      setCurrentView('OnlineAlbumDetails');
+                    }}>
                       {album.artworkUrl100 ? (
                         <img className="card-art" src={album.artworkUrl100.replace('100x100bb', '300x300bb')} alt="Cover" style={{ objectFit: 'cover' }} />
                       ) : (

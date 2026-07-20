@@ -9,6 +9,7 @@ import SearchView from './views/SearchView';
 import AlbumView from './views/AlbumView';
 import PlaylistView from './views/PlaylistView';
 import ArtistView from './views/ArtistView';
+import OnlineAlbumView from './views/OnlineAlbumView';
 import Sidebar from './components/Sidebar';
 import DesktopPlayer from './components/DesktopPlayer';
 import DesktopNowPlaying from './components/DesktopNowPlaying';
@@ -34,7 +35,7 @@ function App() {
     selectedAlbum, selectedPlaylist, playlistModalTrack, setPlaylistModalTrack 
   } = usePlayerStore();
 
-  const viewOrder = useMemo(() => ['Home', 'Library', 'ArtistDetails', 'AlbumDetails', 'PlaylistDetails'], []);
+  const viewOrder = useMemo(() => ['Home', 'Library', 'ArtistDetails', 'OnlineAlbumDetails', 'AlbumDetails', 'PlaylistDetails'], []);
   const [direction, setDirection] = useState(0);
 
   const pageVariants = {
@@ -165,6 +166,8 @@ function App() {
                       <PlaylistView setCurrentView={handleSetView} playlist={selectedPlaylist} />
                     ) : currentView === 'ArtistDetails' ? (
                       <ArtistView setCurrentView={handleSetView} artist={usePlayerStore.getState().selectedArtist} />
+                    ) : currentView === 'OnlineAlbumDetails' ? (
+                      <OnlineAlbumView setCurrentView={handleSetView} />
                     ) : null}
                   </motion.div>
                 </AnimatePresence>
@@ -174,12 +177,12 @@ function App() {
             <Sidebar />
           </div>
 
-          <DesktopNowPlaying />
-          <DesktopPlayer />
+          <DesktopNowPlaying setCurrentView={handleSetView} />
+          <DesktopPlayer setCurrentView={handleSetView} />
           
-          <MobileMiniPlayer onToggle={toggleMobileNowPlaying} />
+          <MobileMiniPlayer onToggle={toggleMobileNowPlaying} setCurrentView={handleSetView} />
           <MobileBottomNav currentView={currentView} setCurrentView={handleSetView} />
-          <MobileNowPlaying isOpen={mobileNowPlayingOpen} onToggle={toggleMobileNowPlaying} />
+          <MobileNowPlaying isOpen={mobileNowPlayingOpen} onToggle={toggleMobileNowPlaying} setCurrentView={handleSetView} />
           <Toast />
           <AddToPlaylistModal 
             isOpen={!!playlistModalTrack} 

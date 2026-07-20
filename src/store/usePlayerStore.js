@@ -67,6 +67,7 @@ const usePlayerStore = create((set, get) => ({
   setSelectedAlbum: (album) => set({ selectedAlbum: album }),
   setSelectedPlaylist: (playlist) => set({ selectedPlaylist: playlist }),
   setSelectedArtist: (artist) => set({ selectedArtist: artist }),
+  setSelectedOnlineAlbum: (album) => set({ selectedOnlineAlbum: album }),
   setPlaylistModalTrack: (track) => set({ playlistModalTrack: track }),
   setLibraryActiveTab: (tab) => set({ libraryActiveTab: tab }),
   

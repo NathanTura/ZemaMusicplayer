@@ -6,12 +6,13 @@ import CreatePlaylistModal from '../components/CreatePlaylistModal';
 import usePlayerStore from '../store/usePlayerStore';
 
 const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, setCurrentView }) => {
-  const tabs = useMemo(() => ['Singles', 'Albums', 'Playlists', 'History', 'Likes'], []);
+  const tabs = useMemo(() => ['Singles', 'Albums', 'Artists', 'Playlists', 'History', 'Likes'], []);
   const [direction, setDirection] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [playlistSearch, setPlaylistSearch] = useState('');
+  const [artistSearch, setArtistSearch] = useState('');
   
-  const { singles, albums, library, setLibrary, history, likes, playTrack, setSelectedAlbum, setSelectedPlaylist, setPlaylistModalTrack, addToast, libraryActiveTab, setLibraryActiveTab, currentTrack, isPlaying } = usePlayerStore();
+  const { singles, albums, library, artists, setLibrary, history, likes, playTrack, setSelectedAlbum, setSelectedPlaylist, setSelectedArtist, setPlaylistModalTrack, addToast, libraryActiveTab, setLibraryActiveTab, currentTrack, isPlaying } = usePlayerStore();
 
   const handleTabChange = (tab) => {
     if (tab === libraryActiveTab) return;
@@ -97,6 +98,65 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
               <div className="card-subtitle">{album.tracks.length} tracks</div>
             </div>
           ))}
+        </div>
+      );
+    }
+
+    if (libraryActiveTab === 'Artists') {
+      const allArtists = artists || [];
+      const filteredArtists = artistSearch.trim()
+        ? allArtists.filter(a => a.name.toLowerCase().includes(artistSearch.toLowerCase()))
+        : allArtists;
+
+      return (
+        <div className="playlists-container">
+          <div className="playlists-toolbar">
+            <div style={{ flex: 1 }}></div>
+            {allArtists.length > 0 && (
+              <div className="playlist-search-field">
+                <span className="material-symbols-rounded" style={{ fontSize: '1.2rem', color: 'var(--color-text-muted)' }}>search</span>
+                <input
+                  type="text"
+                  className="playlist-name-input"
+                  placeholder="Search artists..."
+                  value={artistSearch}
+                  onChange={e => setArtistSearch(e.target.value)}
+                  autoComplete="off"
+                />
+                {artistSearch && (
+                  <button className="icon-btn" onClick={() => setArtistSearch('')} style={{ padding: '4px' }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>close</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {allArtists.length === 0 ? (
+            renderEmpty('Artists', 'person')
+          ) : filteredArtists.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '2.5rem', opacity: 0.4, display: 'block', marginBottom: '8px' }}>search_off</span>
+              No artists matching "{artistSearch}"
+            </div>
+          ) : (
+            <div className="playlist-grid">
+              {filteredArtists.map((artist, i) => (
+                <div className="card" key={i} onClick={() => {
+                  setSelectedArtist(artist);
+                  setCurrentView('ArtistDetails');
+                }}>
+                  {artist.coverArt ? (
+                    <img className="card-art" src={artist.coverArt} alt="Cover" style={{ objectFit: 'cover', borderRadius: '50%' }} />
+                  ) : (
+                    <div className="card-art empty-card-art" style={{ borderRadius: '50%' }}><span className="material-symbols-rounded">person</span></div>
+                  )}
+                  <div className="card-title" style={{ textAlign: 'center' }}>{artist.name}</div>
+                  <div className="card-subtitle" style={{ textAlign: 'center' }}>{artist.tracks.length} tracks</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }

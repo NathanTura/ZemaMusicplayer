@@ -13,7 +13,7 @@ const formatTime = (time) => {
 // panels in left-to-right swipe order
 const PANELS = ['queue', 'player', 'lyrics'];
 
-const MobileNowPlaying = ({ isOpen, onToggle }) => {
+const MobileNowPlaying = ({ isOpen, onToggle, setCurrentView }) => {
   const [activePanel, setActivePanel] = useState('player');
   const [bgColor, setBgColor] = useState('rgb(30,30,30)');
   const dragStartX = useRef(null);
@@ -37,6 +37,8 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
     currentIndex,
     playTrack,
     setPlaylistModalTrack,
+    artists,
+    setSelectedArtist
   } = usePlayerStore();
 
   // Extract dominant color from album art
@@ -228,7 +230,22 @@ const MobileNowPlaying = ({ isOpen, onToggle }) => {
                 <div className="track-info-large">
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="track-title-large">{currentTrack ? currentTrack.title : 'No track selected'}</div>
-                    <div className="track-artist-large">{currentTrack ? currentTrack.artist : 'Unknown Artist'}</div>
+                    <div className="track-artist-large"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           if (currentTrack?.artist && currentTrack.artist !== 'Unknown Artist') {
+                             const artistObj = artists?.find(a => a.name === currentTrack.artist);
+                             if (artistObj) {
+                               setSelectedArtist(artistObj);
+                               onToggle(); // Close mobile player
+                               if (setCurrentView) setCurrentView('ArtistDetails');
+                             }
+                           }
+                         }}
+                         style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                    >
+                      {currentTrack ? currentTrack.artist : 'Unknown Artist'}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                     <button className="icon-btn" onClick={() => currentTrack && setPlaylistModalTrack(currentTrack)} title="Add to Playlist">
