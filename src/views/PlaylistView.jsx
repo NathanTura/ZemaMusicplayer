@@ -70,8 +70,9 @@ const PlaylistView = ({ setCurrentView, playlist }) => {
                 onClick={async (e) => {
                   e.stopPropagation();
                   try {
-                    // track.fileHandle.name is the actual filename on disk
-                    await removeTrackFromPlaylistFolder(playlist.name, track.fileHandle.name);
+                    // track.path is used for JSON playlists
+                    const trackId = track.path || track.id;
+                    await removeTrackFromPlaylistFolder(playlist.name, trackId);
                     addToast('Removed from playlist', 'info');
                     const lib = await loadLibrary();
                     setLibrary(lib.singles, lib.albums, lib.playlists);

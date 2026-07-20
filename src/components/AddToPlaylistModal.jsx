@@ -25,12 +25,14 @@ const AddToPlaylistModal = ({ isOpen, onClose, track }) => {
   if (!isOpen || !track) return null;
 
   const handleAddToPlaylist = async (playlistName) => {
-    if (!track.fileHandle) {
+    if (!track.path && !track.fileHandle) {
       addToast('Cannot add unsaved track to playlist', 'error');
       return;
     }
     try {
-      await addTrackToPlaylistFolder(playlistName, track.fileHandle);
+      // Use track.path for JSON playlists. Fallback to track.id for mobile/external.
+      const trackId = track.path || track.id;
+      await addTrackToPlaylistFolder(playlistName, trackId);
       addToast(`Added to "${playlistName}"`, 'success');
       const lib = await loadLibrary();
       setLibrary(lib.singles, lib.albums, lib.playlists);

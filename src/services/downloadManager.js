@@ -55,57 +55,40 @@ export async function startDownload(track, backendUrl = DEFAULT_BACKEND_URL) {
 
   try {
     usePlayerStore.getState().updateDownload(id, 'downloading');
-    const res = await fetch(`${backendUrl}/download?query=${encodeURIComponent(query)}`);
     
+    // Start polling progress
+    const progressInterval = setInterval(async () => {
+      try {
+        const pRes = await fetch(`${backendUrl}/progress/${id}`);
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          if (pData.status === 'downloading') {
+            usePlayerStore.getState().updateDownloadStats(id, {
+              percent: pData.percent || 0,
+              // We'll show ETA text in progress bar or toast if needed, 
+              // for now we map percent to progress/total so the UI shows it.
+              progress: pData.percent,
+              total: 100, 
+            });
+          } else if (pData.status === 'processing') {
+            usePlayerStore.getState().updateDownloadStats(id, {
+              percent: 100, progress: 100, total: 100
+            });
+          }
+        }
+      } catch (e) {}
+    }, 1000);
+
+    const res = await fetch(`${backendUrl}/download?query=${encodeURIComponent(query)}&client_id=${id}`);
+    
+    clearInterval(progressInterval);
+
     if (!res.ok) {
       const errorMessage = await res.text();
       throw new Error(errorMessage || 'Download failed');
     }
 
-    // Track download progress
-    const total = parseInt(res.headers.get('content-length') || '0', 10);
-    let loaded = 0;
-    let lastTime = Date.now();
-    let lastLoaded = 0;
-    let speeds = [];
-
-    const reader = res.body.getReader();
-    const chunks = [];
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      chunks.push(value);
-      loaded += value.length;
-
-      const now = Date.now();
-      const timeDiff = (now - lastTime) / 1000;
-      const bytesDiff = loaded - lastLoaded;
-      const speed = timeDiff > 0 ? bytesDiff / timeDiff : 0;
-
-      speeds.push(speed);
-      if (speeds.length > 5) speeds.shift();
-      const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-
-      const percent = total > 0 ? Math.round((loaded / total) * 100) : 0;
-      const eta = avgSpeed > 0 ? Math.round((total - loaded) / avgSpeed) : 0;
-
-      usePlayerStore.getState().updateDownloadStats(id, {
-        progress: loaded,
-        total,
-        speed: avgSpeed,
-        percent,
-        eta
-      });
-
-      if (timeDiff >= 0.5) {
-        lastTime = now;
-        lastLoaded = loaded;
-      }
-    }
-
-    const blob = new Blob(chunks);
+    const blob = await res.blob();
     const safeName = `${artist} - ${title}.mp3`;
     await saveCompletedFile(blob, safeName);
     usePlayerStore.getState().updateDownload(id, 'completed');

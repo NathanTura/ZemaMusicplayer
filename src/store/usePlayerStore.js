@@ -7,11 +7,13 @@ const usePlayerStore = create((set, get) => ({
   singles: [],
   albums: [],
   playlists: [],
-  library: { singles: [], albums: [], playlists: [] },
+  library: { singles: [], albums: [], playlists: [], artists: [] },
+  artists: [],
   history: [],
   likes: [],
   selectedAlbum: null,
   selectedPlaylist: null,
+  selectedArtist: null,
   playlistModalTrack: null,
   searchQuery: '',
   toasts: [],
@@ -43,10 +45,28 @@ const usePlayerStore = create((set, get) => ({
   audioElement: null,
 
   setZemaRootSelected: (status) => set({ zemaRootSelected: status }),
-  setLibrary: (singles, albums, playlists) => set({ singles, albums, playlists, library: { singles, albums, playlists } }),
+  setLibrary: (singles, albums, playlists) => set((state) => {
+    const allTracks = [...singles];
+    albums.forEach(a => allTracks.push(...a.tracks));
+    
+    const artistMap = {};
+    allTracks.forEach(track => {
+      const a = track.artist || 'Unknown Artist';
+      if (!artistMap[a]) {
+        artistMap[a] = { name: a, tracks: [], coverArt: track.coverArt };
+      } else if (!artistMap[a].coverArt && track.coverArt) {
+        artistMap[a].coverArt = track.coverArt; // take first available cover
+      }
+      artistMap[a].tracks.push(track);
+    });
+    const artists = Object.values(artistMap).sort((a, b) => a.name.localeCompare(b.name));
+    
+    return { singles, albums, playlists, artists, library: { singles, albums, playlists, artists } };
+  }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedAlbum: (album) => set({ selectedAlbum: album }),
   setSelectedPlaylist: (playlist) => set({ selectedPlaylist: playlist }),
+  setSelectedArtist: (artist) => set({ selectedArtist: artist }),
   setPlaylistModalTrack: (track) => set({ playlistModalTrack: track }),
   setLibraryActiveTab: (tab) => set({ libraryActiveTab: tab }),
   

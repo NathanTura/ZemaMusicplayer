@@ -274,38 +274,66 @@ export async function importAlbum(sourceDirHandle) {
 }
 
 /**
- * Creates a new physical playlist folder
+ * Creates a new JSON playlist
  */
 export async function createPlaylistFolder(name) {
   const root = await getZemaRoot();
   if (!root) throw new Error("Zema root not set");
   const playlistsDir = await ensureDirectory(root, 'Playlists');
-  await ensureDirectory(playlistsDir, name);
+  const newFileHandle = await playlistsDir.getFileHandle(`${name}.json`, { create: true });
+  const writable = await newFileHandle.createWritable();
+  await writable.write(JSON.stringify([]));
+  await writable.close();
   return true;
 }
 
 /**
- * Copies an audio file into a playlist folder
+ * Adds a track path to a JSON playlist
  */
-export async function addTrackToPlaylistFolder(playlistName, trackFileHandle) {
+export async function addTrackToPlaylistFolder(playlistName, trackPath) {
   const root = await getZemaRoot();
   if (!root) throw new Error("Zema root not set");
   const playlistsDir = await ensureDirectory(root, 'Playlists');
-  const targetPlaylistDir = await ensureDirectory(playlistsDir, playlistName);
+  const playlistFile = await playlistsDir.getFileHandle(`${playlistName}.json`, { create: true });
   
-  return await copyFileToDir(trackFileHandle, targetPlaylistDir);
+  const file = await playlistFile.getFile();
+  let tracks = [];
+  if (file.size > 0) {
+    const text = await file.text();
+    try { tracks = JSON.parse(text); } catch (e) { console.error(e); }
+  }
+  
+  if (!tracks.includes(trackPath)) {
+    tracks.push(trackPath);
+  }
+  
+  const writable = await playlistFile.createWritable();
+  await writable.write(JSON.stringify(tracks, null, 2));
+  await writable.close();
+  return true;
 }
 
 /**
- * Removes a track from a playlist folder
+ * Removes a track from a JSON playlist
  */
-export async function removeTrackFromPlaylistFolder(playlistName, trackFileName) {
+export async function removeTrackFromPlaylistFolder(playlistName, trackPath) {
   const root = await getZemaRoot();
   if (!root) throw new Error("Zema root not set");
   const playlistsDir = await ensureDirectory(root, 'Playlists');
-  const targetPlaylistDir = await ensureDirectory(playlistsDir, playlistName);
+  const playlistFile = await playlistsDir.getFileHandle(`${playlistName}.json`, { create: true });
   
-  await targetPlaylistDir.removeEntry(trackFileName);
+  const file = await playlistFile.getFile();
+  let tracks = [];
+  if (file.size > 0) {
+    const text = await file.text();
+    try { tracks = JSON.parse(text); } catch (e) { console.error(e); }
+  }
+  
+  tracks = tracks.filter(p => p !== trackPath);
+  
+  const writable = await playlistFile.createWritable();
+  await writable.write(JSON.stringify(tracks, null, 2));
+  await writable.close();
   return true;
 }
 
@@ -428,16 +456,43 @@ export async function loadLibrary() {
     }
   }
 
+  const allLoadedTracks = [...singles];
+  albums.forEach(a => allLoadedTracks.push(...a.tracks));
+
   const playlistsDir = await ensureDirectory(root, 'Playlists');
   const playlists = [];
   for await (const entry of playlistsDir.values()) {
-    if (entry.kind === 'directory') {
+    if (entry.kind === 'file' && entry.name.endsWith('.json')) {
+      const name = entry.name.replace('.json', '');
+      try {
+        const file = await entry.getFile();
+        const text = await file.text();
+        const trackPaths = JSON.parse(text);
+        
+        // Map paths to loaded tracks
+        const playlistTracks = trackPaths
+          .map(path => allLoadedTracks.find(t => t.path === path))
+          .filter(Boolean); // Remove nulls if a file was deleted
+
+        playlists.push({
+          name: name,
+          handle: entry,
+          tracks: playlistTracks
+        });
+      } catch (e) {
+        console.error("Error reading playlist", name, e);
+      }
+    } else if (entry.kind === 'directory') {
+      // Migrate old folder playlists (best effort, without writing new JSON right now to avoid loops, just read them)
       const playlistTracks = await getAudioFilesInDir(entry, `Playlists/${entry.name}`);
-      playlists.push({
-        name: entry.name,
-        handle: entry,
-        tracks: playlistTracks
-      });
+      if (playlistTracks.length > 0) {
+        playlists.push({
+          name: entry.name,
+          handle: entry,
+          tracks: playlistTracks,
+          isLegacyFolder: true
+        });
+      }
     }
   }
 

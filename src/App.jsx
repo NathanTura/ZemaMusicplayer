@@ -8,6 +8,7 @@ import LibraryView from './views/LibraryView';
 import SearchView from './views/SearchView';
 import AlbumView from './views/AlbumView';
 import PlaylistView from './views/PlaylistView';
+import ArtistView from './views/ArtistView';
 import Sidebar from './components/Sidebar';
 import DesktopPlayer from './components/DesktopPlayer';
 import DesktopNowPlaying from './components/DesktopNowPlaying';
@@ -33,7 +34,7 @@ function App() {
     selectedAlbum, selectedPlaylist, playlistModalTrack, setPlaylistModalTrack 
   } = usePlayerStore();
 
-  const viewOrder = useMemo(() => ['Home', 'Library', 'AlbumDetails', 'PlaylistDetails'], []);
+  const viewOrder = useMemo(() => ['Home', 'Library', 'ArtistDetails', 'AlbumDetails', 'PlaylistDetails'], []);
   const [direction, setDirection] = useState(0);
 
   const pageVariants = {
@@ -162,6 +163,8 @@ function App() {
                       <AlbumView setCurrentView={handleSetView} album={selectedAlbum} />
                     ) : currentView === 'PlaylistDetails' ? (
                       <PlaylistView setCurrentView={handleSetView} playlist={selectedPlaylist} />
+                    ) : currentView === 'ArtistDetails' ? (
+                      <ArtistView setCurrentView={handleSetView} artist={usePlayerStore.getState().selectedArtist} />
                     ) : null}
                   </motion.div>
                 </AnimatePresence>
