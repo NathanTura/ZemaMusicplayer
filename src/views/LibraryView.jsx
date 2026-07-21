@@ -25,7 +25,18 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
         const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artistSearch)}&entity=musicArtist&limit=5`);
         const data = await res.json();
         if (data.results) {
-          setOnlineArtists(data.results);
+          const artistsWithImages = await Promise.all(data.results.map(async (artist) => {
+            try {
+              const songRes = await fetch(`https://itunes.apple.com/lookup?id=${artist.artistId}&entity=song&limit=1`);
+              const songData = await songRes.json();
+              const song = songData.results.find(r => r.wrapperType === 'track');
+              if (song && song.artworkUrl100) {
+                return { ...artist, imageUrl: song.artworkUrl100.replace('100x100bb', '300x300bb') };
+              }
+            } catch(e) {}
+            return artist;
+          }));
+          setOnlineArtists(artistsWithImages);
         }
       } catch (e) {
         console.warn('Artist search error:', e);
@@ -197,12 +208,16 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
                     <div className="playlist-grid">
                       {onlineArtists.map((artist) => (
                         <div className="card" key={artist.artistId} onClick={() => {
-                          setSelectedArtist({ name: artist.artistName, tracks: [], coverArt: null });
+                          setSelectedArtist({ name: artist.artistName, tracks: [], coverArt: artist.imageUrl || null });
                           setCurrentView('ArtistDetails');
                         }}>
-                          <div className="card-art empty-card-art" style={{ borderRadius: '50%' }}>
-                            <span className="material-symbols-rounded">person_search</span>
-                          </div>
+                          {artist.imageUrl ? (
+                            <img className="card-art" src={artist.imageUrl} alt="Cover" style={{ objectFit: 'cover', borderRadius: '50%' }} />
+                          ) : (
+                            <div className="card-art empty-card-art" style={{ borderRadius: '50%' }}>
+                              <span className="material-symbols-rounded">person_search</span>
+                            </div>
+                          )}
                           <div className="card-title" style={{ textAlign: 'center' }}>{artist.artistName}</div>
                           <div className="card-subtitle" style={{ textAlign: 'center' }}>Online Artist</div>
                         </div>
