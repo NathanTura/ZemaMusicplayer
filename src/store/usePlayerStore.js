@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { get as getIDB, set as setIDB } from 'idb-keyval';
+import { saveHistoryToFile, saveLikesToFile, loadHistoryFromFile, loadLikesFromFile } from '../services/FileSystem';
 
 const usePlayerStore = create((set, get) => ({
   // Library State
@@ -111,6 +112,7 @@ const usePlayerStore = create((set, get) => ({
     const historyWithoutTrack = state.history.filter(t => t.id !== track.id);
     const newHistory = [track, ...historyWithoutTrack].slice(0, 50); // Keep last 50
     setIDB('zema_history', newHistory.map(t => t.id)).catch(console.error);
+    saveHistoryToFile(newHistory);
 
     const index = queue.findIndex(t => t.id === track.id);
     return {
@@ -136,6 +138,7 @@ const usePlayerStore = create((set, get) => ({
       newLikes = [track, ...state.likes];
     }
     setIDB('zema_likes', newLikes.map(t => t.id)).catch(console.error);
+    saveLikesToFile(newLikes);
     return { likes: newLikes };
   }),
 
@@ -145,11 +148,19 @@ const usePlayerStore = create((set, get) => ({
       const allTracks = [...singles];
       albums.forEach(a => allTracks.push(...a.tracks));
       
-      const historyIds = await getIDB('zema_history') || [];
-      const likesIds = await getIDB('zema_likes') || [];
+      let historyIds = await loadHistoryFromFile();
+      let likesIds = await loadLikesFromFile();
       
-      const hydratedHistory = historyIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
-      const hydratedLikes = likesIds.map(id => allTracks.find(t => t.id === id)).filter(Boolean);
+      // Fallback to IndexedDB if files don't exist yet (migration)
+      if (!historyIds || historyIds.length === 0) {
+        historyIds = await getIDB('zema_history') || [];
+      }
+      if (!likesIds || likesIds.length === 0) {
+        likesIds = await getIDB('zema_likes') || [];
+      }
+      
+      const hydratedHistory = historyIds.map(id => allTracks.find(t => t.path === id || t.id === id)).filter(Boolean);
+      const hydratedLikes = likesIds.map(id => allTracks.find(t => t.path === id || t.id === id)).filter(Boolean);
       
       const updates = { history: hydratedHistory, likes: hydratedLikes };
       
@@ -192,6 +203,7 @@ const usePlayerStore = create((set, get) => ({
     const historyWithoutTrack = state.history.filter(t => t.id !== nextTrackObj.id);
     const newHistory = [nextTrackObj, ...historyWithoutTrack].slice(0, 50);
     setIDB('zema_history', newHistory.map(t => t.id)).catch(console.error);
+    saveHistoryToFile(newHistory);
 
     return {
       currentIndex: nextIndex,
@@ -213,6 +225,7 @@ const usePlayerStore = create((set, get) => ({
     const historyWithoutTrack = state.history.filter(t => t.id !== prevTrackObj.id);
     const newHistory = [prevTrackObj, ...historyWithoutTrack].slice(0, 50);
     setIDB('zema_history', newHistory.map(t => t.id)).catch(console.error);
+    saveHistoryToFile(newHistory);
 
     return {
       currentIndex: prevIndex,

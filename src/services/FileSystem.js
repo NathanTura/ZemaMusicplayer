@@ -519,3 +519,69 @@ export async function loadLibrary() {
 
   return { singles, albums, playlists };
 }
+
+/**
+ * Saves history track paths to .zema_history.json
+ */
+export async function saveHistoryToFile(tracks) {
+  const root = await getZemaRoot();
+  if (!root) return;
+  try {
+    const fileHandle = await root.getFileHandle('.zema_history.json', { create: true });
+    const writable = await fileHandle.createWritable();
+    const paths = tracks.map(t => t.path || t.id).filter(Boolean);
+    await writable.write(JSON.stringify(paths, null, 2));
+    await writable.close();
+  } catch (e) {
+    console.error("Failed to save history to file", e);
+  }
+}
+
+/**
+ * Saves liked track paths to .zema_likes.json
+ */
+export async function saveLikesToFile(tracks) {
+  const root = await getZemaRoot();
+  if (!root) return;
+  try {
+    const fileHandle = await root.getFileHandle('.zema_likes.json', { create: true });
+    const writable = await fileHandle.createWritable();
+    const paths = tracks.map(t => t.path || t.id).filter(Boolean);
+    await writable.write(JSON.stringify(paths, null, 2));
+    await writable.close();
+  } catch (e) {
+    console.error("Failed to save likes to file", e);
+  }
+}
+
+/**
+ * Loads history track paths from .zema_history.json
+ */
+export async function loadHistoryFromFile() {
+  const root = await getZemaRoot();
+  if (!root) return [];
+  try {
+    const fileHandle = await root.getFileHandle('.zema_history.json');
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Loads liked track paths from .zema_likes.json
+ */
+export async function loadLikesFromFile() {
+  const root = await getZemaRoot();
+  if (!root) return [];
+  try {
+    const fileHandle = await root.getFileHandle('.zema_likes.json');
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch (e) {
+    return [];
+  }
+}
