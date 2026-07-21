@@ -29,8 +29,8 @@ const DownloadsModal = () => {
                   <div className="download-title" style={{ fontWeight: 600, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {download.title}
                   </div>
-                  <div className="download-artist" style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                    {download.artist}
+                  <div className="download-artist" style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {download.artist}{download.albumName ? ` • ${download.albumName}` : ''}
                   </div>
                   {download.status === 'downloading' && download.total > 0 && (
                     <div className="download-progress-container" style={{ marginTop: '8px', width: '100%' }}>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPlaylistFolder, loadLibrary } from '../services/FileSystem';
 import FolderBanner from '../components/FolderBanner';
@@ -11,6 +11,29 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [playlistSearch, setPlaylistSearch] = useState('');
   const [artistSearch, setArtistSearch] = useState('');
+  const [onlineArtists, setOnlineArtists] = useState([]);
+  const [onlineLoading, setOnlineLoading] = useState(false);
+
+  useEffect(() => {
+    if (!artistSearch || artistSearch.trim().length < 2) {
+      setOnlineArtists([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setOnlineLoading(true);
+      try {
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artistSearch)}&entity=musicArtist&limit=5`);
+        const data = await res.json();
+        if (data.results) {
+          setOnlineArtists(data.results);
+        }
+      } catch (e) {
+        console.warn('Artist search error:', e);
+      }
+      setOnlineLoading(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [artistSearch]);
   
   const { singles, albums, library, artists, setLibrary, history, likes, playTrack, setSelectedAlbum, setSelectedPlaylist, setSelectedArtist, setPlaylistModalTrack, addToast, libraryActiveTab, setLibraryActiveTab, currentTrack, isPlaying } = usePlayerStore();
 
@@ -132,30 +155,63 @@ const LibraryView = ({ localFiles, onBrowseClick, fileInputRef, onFileChange, se
             )}
           </div>
 
-          {allArtists.length === 0 ? (
+          {allArtists.length === 0 && !artistSearch ? (
             renderEmpty('Artists', 'person')
-          ) : filteredArtists.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
-              <span className="material-symbols-rounded" style={{ fontSize: '2.5rem', opacity: 0.4, display: 'block', marginBottom: '8px' }}>search_off</span>
-              No artists matching "{artistSearch}"
-            </div>
           ) : (
-            <div className="playlist-grid">
-              {filteredArtists.map((artist, i) => (
-                <div className="card" key={i} onClick={() => {
-                  setSelectedArtist(artist);
-                  setCurrentView('ArtistDetails');
-                }}>
-                  {artist.coverArt ? (
-                    <img className="card-art" src={artist.coverArt} alt="Cover" style={{ objectFit: 'cover', borderRadius: '50%' }} />
-                  ) : (
-                    <div className="card-art empty-card-art" style={{ borderRadius: '50%' }}><span className="material-symbols-rounded">person</span></div>
-                  )}
-                  <div className="card-title" style={{ textAlign: 'center' }}>{artist.name}</div>
-                  <div className="card-subtitle" style={{ textAlign: 'center' }}>{artist.tracks.length} tracks</div>
+            <>
+              {filteredArtists.length > 0 && (
+                <>
+                  {artistSearch && <h3 style={{ marginTop: '20px', marginBottom: '10px' }}>Local Artists</h3>}
+                  <div className="playlist-grid">
+                    {filteredArtists.map((artist, i) => (
+                      <div className="card" key={`local-${i}`} onClick={() => {
+                        setSelectedArtist(artist);
+                        setCurrentView('ArtistDetails');
+                      }}>
+                        {artist.coverArt ? (
+                          <img className="card-art" src={artist.coverArt} alt="Cover" style={{ objectFit: 'cover', borderRadius: '50%' }} />
+                        ) : (
+                          <div className="card-art empty-card-art" style={{ borderRadius: '50%' }}><span className="material-symbols-rounded">person</span></div>
+                        )}
+                        <div className="card-title" style={{ textAlign: 'center' }}>{artist.name}</div>
+                        <div className="card-subtitle" style={{ textAlign: 'center' }}>{artist.tracks.length} tracks</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {filteredArtists.length === 0 && !onlineLoading && onlineArtists.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
+                  <span className="material-symbols-rounded" style={{ fontSize: '2.5rem', opacity: 0.4, display: 'block', marginBottom: '8px' }}>search_off</span>
+                  No artists matching "{artistSearch}"
                 </div>
-              ))}
-            </div>
+              )}
+              
+              {/* Online Artists */}
+              {artistSearch && (
+                <>
+                  <h3 style={{ marginTop: '40px', marginBottom: '10px' }}>Online Results</h3>
+                  {onlineLoading ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)' }}>Searching iTunes...</div>
+                  ) : (
+                    <div className="playlist-grid">
+                      {onlineArtists.map((artist) => (
+                        <div className="card" key={artist.artistId} onClick={() => {
+                          setSelectedArtist({ name: artist.artistName, tracks: [], coverArt: null });
+                          setCurrentView('ArtistDetails');
+                        }}>
+                          <div className="card-art empty-card-art" style={{ borderRadius: '50%' }}>
+                            <span className="material-symbols-rounded">person_search</span>
+                          </div>
+                          <div className="card-title" style={{ textAlign: 'center' }}>{artist.artistName}</div>
+                          <div className="card-subtitle" style={{ textAlign: 'center' }}>Online Artist</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
           )}
         </div>
       );

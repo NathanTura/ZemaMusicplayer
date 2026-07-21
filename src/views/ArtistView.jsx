@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 import { startDownload, downloadAlbumSequential } from '../services/downloadManager';
 
@@ -6,12 +6,20 @@ const ArtistView = ({ setCurrentView, artist }) => {
   const { playTrack, library } = usePlayerStore();
   const [activeTab, setActiveTab] = useState('local');
   const [onlineData, setOnlineData] = useState({ topTracks: [], albums: [], loading: false, error: null });
+  const [previewingId, setPreviewingId] = useState(null);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     if (activeTab === 'online' && onlineData.topTracks.length === 0 && !onlineData.loading) {
       fetchOnlineData();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    };
+  }, []);
 
   const fetchOnlineData = async () => {
     setOnlineData(prev => ({ ...prev, loading: true }));
@@ -37,6 +45,45 @@ const ArtistView = ({ setCurrentView, artist }) => {
     return library.singles.some(t => t.title.toLowerCase() === trackName.toLowerCase()) || 
            library.albums.some(a => a.tracks.some(t => t.title.toLowerCase() === trackName.toLowerCase()));
   };
+  
+  const getLocalTrack = (trackName) => {
+    let t = library.singles.find(t => t.title.toLowerCase() === trackName.toLowerCase());
+    if (t) return t;
+    for (const a of library.albums) {
+      t = a.tracks.find(t => t.title.toLowerCase() === trackName.toLowerCase());
+      if (t) return t;
+    }
+    return null;
+  };
+
+  const handlePreviewPointer = (e, track) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!track.previewUrl) return;
+
+    if (previewingId === track.trackId) {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      setPreviewingId(null);
+      return;
+    }
+
+    if (audioRef.current) audioRef.current.pause();
+    const audio = new Audio(track.previewUrl);
+    audio.volume = 0.5;
+    audio.play().catch(err => console.error(`Preview error: ${err.message}`));
+    audio.onended = () => setPreviewingId(null);
+    audioRef.current = audio;
+    setPreviewingId(track.trackId);
+  };
+
+  const handleLocalPlay = (e, trackName) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const localTrack = getLocalTrack(trackName);
+    if (localTrack) {
+      playTrack(localTrack);
+    }
+  };
 
   const handleDownloadAlbum = async (album, e) => {
     e.stopPropagation();
@@ -44,7 +91,7 @@ const ArtistView = ({ setCurrentView, artist }) => {
       const res = await fetch(`https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`);
       const data = await res.json();
       const songResults = data.results.filter(r => r.wrapperType === 'track');
-      downloadAlbumSequential(songResults, isDownloaded);
+      downloadAlbumSequential(songResults, isDownloaded, undefined, album.collectionName);
     } catch (error) {
       console.error('Failed to fetch and download album', error);
     }
@@ -145,7 +192,23 @@ const ArtistView = ({ setCurrentView, artist }) => {
                 {onlineData.topTracks.map((track, i) => {
                   const downloaded = isDownloaded(track.trackName);
                   return (
-                    <div className="track-item" key={i} style={{ opacity: downloaded ? 0.7 : 1 }}>
+                    <div className="track-item" key={i} style={{ opacity: downloaded ? 1 : 0.8 }} onClick={(e) => {
+                      if (downloaded) handleLocalPlay(e, track.trackName);
+                      else handlePreviewPointer(e, track);
+                    }}>
+                      <button
+                        className="icon-btn"
+                        style={{ padding: '0 10px 0 0', flexShrink: 0 }}
+                        onClick={(e) => {
+                          if (downloaded) handleLocalPlay(e, track.trackName);
+                          else handlePreviewPointer(e, track);
+                        }}
+                        disabled={!downloaded && !track.previewUrl}
+                      >
+                        <span className="material-symbols-rounded" style={{ color: downloaded ? '#1db954' : '#fff' }}>
+                          {downloaded ? 'play_arrow' : (previewingId === track.trackId ? 'stop_circle' : 'play_circle')}
+                        </span>
+                      </button>
                       <div className="track-icon">
                         {track.artworkUrl100 ? (
                           <img src={track.artworkUrl100} alt="" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px'}} />

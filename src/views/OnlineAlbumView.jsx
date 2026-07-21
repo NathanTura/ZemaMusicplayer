@@ -39,8 +39,10 @@ const OnlineAlbumView = ({ setCurrentView }) => {
   };
 
   const handleDownloadAll = () => {
-    downloadAlbumSequential(tracks, isDownloaded);
+    downloadAlbumSequential(tracks, isDownloaded, undefined, selectedOnlineAlbum.collectionName);
   };
+
+  const allDownloaded = tracks.length > 0 && tracks.every(t => isDownloaded(t.trackName));
 
   if (!selectedOnlineAlbum) {
     return (
@@ -76,9 +78,16 @@ const OnlineAlbumView = ({ setCurrentView }) => {
             <h1>{selectedOnlineAlbum.collectionName}</h1>
             <p>{selectedOnlineAlbum.artistName} • {selectedOnlineAlbum.releaseDate?.substring(0, 4)} • {tracks.length} tracks</p>
             <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-              <button className="play-all-btn" onClick={handleDownloadAll} disabled={tracks.length === 0}>
-                <span className="material-symbols-rounded">download</span>
-                Save Album
+              <button 
+                className="play-all-btn" 
+                onClick={handleDownloadAll} 
+                disabled={tracks.length === 0 || allDownloaded}
+                style={{ background: allDownloaded ? '#2a2a2a' : '', color: allDownloaded ? '#aaa' : '' }}
+              >
+                <span className="material-symbols-rounded">
+                  {allDownloaded ? 'check_circle' : 'download'}
+                </span>
+                {allDownloaded ? 'Saved' : 'Save Album'}
               </button>
             </div>
           </div>
@@ -111,7 +120,7 @@ const OnlineAlbumView = ({ setCurrentView }) => {
                       startDownload({
                         title: track.trackName,
                         artist: track.artistName
-                      });
+                      }, undefined, { albumName: selectedOnlineAlbum.collectionName });
                     }}
                     title="Download"
                   >

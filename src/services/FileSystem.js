@@ -193,6 +193,27 @@ export async function saveBlobToSingles(blob, filename) {
 }
 
 /**
+ * Saves a raw Blob to a specific Album folder
+ */
+export async function saveBlobToAlbum(blob, albumFolderName, filename) {
+  const root = await getZemaRoot();
+  if (!root) {
+    // Mobile fallback: reuse saveBlobToSingles for now
+    return await saveBlobToSingles(blob, filename);
+  }
+  
+  const albumsDir = await ensureDirectory(root, 'Albums');
+  // Clean up album folder name to avoid invalid characters
+  const safeFolderName = albumFolderName.replace(/[<>:"/\\|?*]+/g, '_');
+  const targetAlbumDir = await ensureDirectory(albumsDir, safeFolderName);
+  const newFileHandle = await targetAlbumDir.getFileHandle(filename, { create: true });
+  const writable = await newFileHandle.createWritable();
+  await writable.write(blob);
+  await writable.close();
+  return true;
+}
+
+/**
  * Helper to build track object from raw Blob/File for mobile IDB
  */
 export async function buildMobileTrackFromBlob(blob, filename) {

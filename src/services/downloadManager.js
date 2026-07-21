@@ -1,5 +1,5 @@
 import usePlayerStore from '../store/usePlayerStore';
-import { saveBlobToSingles, loadLibrary } from './FileSystem';
+import { saveBlobToSingles, saveBlobToAlbum, loadLibrary } from './FileSystem';
 
 const DEFAULT_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
@@ -11,8 +11,14 @@ function getDownloadTitle(track) {
   return track.title || track.trackName || track.name || 'Unknown';
 }
 
-async function saveCompletedFile(blob, filename) {
-  const saved = await saveBlobToSingles(blob, filename);
+async function saveCompletedFile(blob, filename, albumName, artistName) {
+  let saved = false;
+  if (albumName) {
+    const folderName = `${artistName} - ${albumName}`;
+    saved = await saveBlobToAlbum(blob, folderName, filename);
+  } else {
+    saved = await saveBlobToSingles(blob, filename);
+  }
   if (saved) {
     try {
       const lib = await loadLibrary();
@@ -32,10 +38,11 @@ async function saveCompletedFile(blob, filename) {
   }
 }
 
-export async function startDownload(track, backendUrl = DEFAULT_BACKEND_URL) {
+export async function startDownload(track, backendUrl = DEFAULT_BACKEND_URL, options = {}) {
   const query = buildQuery(track);
   const title = getDownloadTitle(track);
   const artist = track.artist || track.artistName || '';
+  const albumName = options.albumName || null;
 
   const id = Math.random().toString(36).substr(2, 9);
   const downloadObj = {
@@ -43,6 +50,7 @@ export async function startDownload(track, backendUrl = DEFAULT_BACKEND_URL) {
     query,
     title,
     artist,
+    albumName,
     status: 'downloading',
     progress: 0,
     total: 0,
@@ -89,8 +97,8 @@ export async function startDownload(track, backendUrl = DEFAULT_BACKEND_URL) {
     }
 
     const blob = await res.blob();
-    const safeName = `${artist} - ${title}.mp3`;
-    await saveCompletedFile(blob, safeName);
+    const safeName = `${artist} - ${title}.mp3`.replace(/[<>:"/\\|?*]+/g, '_');
+    await saveCompletedFile(blob, safeName, albumName, artist);
     usePlayerStore.getState().updateDownload(id, 'completed');
   } catch (error) {
     console.error('Download failed', error);
@@ -120,7 +128,7 @@ export async function cancelDownload(id) {
   usePlayerStore.getState().removeDownload(id);
 }
 
-export async function downloadAlbumSequential(tracks, isDownloadedFn, backendUrl = DEFAULT_BACKEND_URL) {
+export async function downloadAlbumSequential(tracks, isDownloadedFn, backendUrl = DEFAULT_BACKEND_URL, albumName = null) {
   for (const track of tracks) {
     const isDownloaded = isDownloadedFn ? isDownloadedFn(track.trackName) : false;
     const isDownloading = usePlayerStore.getState().activeDownloads.some(d => d.title.toLowerCase() === track.trackName.toLowerCase() && d.status === 'downloading');
@@ -130,7 +138,7 @@ export async function downloadAlbumSequential(tracks, isDownloadedFn, backendUrl
         await startDownload({
           title: track.trackName,
           artist: track.artistName
-        }, backendUrl);
+        }, backendUrl, { albumName });
       } catch (e) {
         console.error(`Failed to download ${track.trackName}`, e);
       }
